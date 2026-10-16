@@ -2,7 +2,7 @@
   "name": "Personal Finance & Forecast Tracker",
   "short_name": "Finance Tracker",
   "description": "Multi-month personal cashflow, daily expenses, and credit card forecast tracker",
-  "start_url": "./expense_tracker_live.html",
+ "start_url": "./index.html",
   "id": "personal-finance-tracker-pwa",
   "display": "standalone",
   "orientation": "portrait",
