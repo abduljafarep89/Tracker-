@@ -2,7 +2,7 @@
 const CACHE_NAME = 'finance-tracker-pwa-v1';
 const ASSETS_TO_CACHE = [
   './',
-  './expense_tracker_live.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
