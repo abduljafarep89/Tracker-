@@ -1,0 +1,2368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finance Tracker">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <title>Personal Finance Tracker - Mobile-Optimized Visual Suite</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --purple: #7c3aed;
+      --teal: #0d9488;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px 12px; line-height: 1.5; }
+    .container { max-width: 1260px; margin: 0 auto; }
+    
+    header { margin-bottom: 14px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .header-title h1 { font-size: 22px; font-weight: 700; color: #1e293b; }
+    .header-title p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+
+    /* Top Action Bar */
+    .top-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .month-control { display: flex; align-items: center; gap: 6px; background: #fff; padding: 5px 10px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .month-control label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .month-select { padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; outline: none; }
+
+    .btn-download-app { background: #16a34a; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25); }
+    .btn-download-app:hover { background: #15803d; }
+
+    .btn-install-app { background: #7c3aed; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.25); transition: background 0.2s; }
+    .btn-install-app:hover { background: #6d28d9; }
+
+    .btn-secondary { background: #fff; border: 1px solid var(--border); padding: 5px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); }
+    .btn-secondary:hover { background: #f1f5f9; color: var(--text); }
+    .btn-add { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-add:hover { background: var(--primary); color: #fff; }
+    .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 9px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-del-icon { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 15px; padding: 2px 6px; }
+    .btn-del-icon:hover { color: var(--danger); background: #fee2e2; }
+
+    /* FORECAST SCHEDULE CUTOFF BAR */
+    .forecast-window-bar { background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 1px 3px rgba(37,99,235,0.06); }
+    .forecast-window-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #1e3a8a; }
+    .forecast-window-label strong { color: #1d4ed8; font-size: 13px; }
+    .forecast-window-select { padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1.5px solid #3b82f6; background: #fff; color: #1e293b; outline: none; cursor: pointer; }
+
+    /* Summary Metric Cards */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 16px; }
+    .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+    .card-value { font-size: 19px; font-weight: 700; margin-top: 3px; }
+    .card-value.primary { color: var(--primary); }
+    .card-value.danger { color: var(--danger); }
+    .card-value.warning { color: var(--warning); }
+    .card-value.success { color: var(--success); }
+    .card-value.purple { color: var(--purple); }
+    .card-value.teal { color: var(--teal); }
+    .card-helper { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Section Headers */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .section-header h2 { font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+
+    /* Visual Suite Grid Layouts */
+    .visual-row-2col { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (min-width: 900px) { .visual-row-2col { grid-template-columns: 1fr 1fr; } }
+    .vis-box { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .vis-title { font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+    .chart-svg { width: 100%; height: 210px; background: #fafafa; border-radius: 6px; border: 1px solid #edf2f7; }
+
+    
+
+    /* Utilization & Category Multi-Row Items */
+    
+
+    /* Tables & Forms */
+    .accounts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .account-box { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: #fdfdfd; }
+    .account-name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .account-name-input { font-weight: 600; font-size: 13px; border: none; background: transparent; padding: 2px; width: 140px; outline: none; border-bottom: 1px dashed transparent; }
+    .account-name-input:focus { border-bottom: 1px dashed var(--primary); }
+    .account-input-group { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .currency-symbol { font-weight: 600; color: var(--text-muted); font-size: 13px; }
+    .account-input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-weight: 600; width: 100%; }
+    .account-subtext { font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 5px; }
+
+    .two-col-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 960px) { .two-col-grid { grid-template-columns: 1fr 1fr; } }
+    .content-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 860px) { .content-grid { grid-template-columns: 320px 1fr; } }
+
+    .form-group { margin-bottom: 10px; }
+    label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px; color: #334155; }
+    input, select { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; transition: border 0.2s; }
+
+    .table-container { overflow-x: auto; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+    th { padding: 8px 9px; background: #f8fafc; color: #475569; font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    td { padding: 7px 9px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #e0f2fe; color: #0369a1; }
+    .badge-card { background: #f3e8ff; color: #6b21a8; }
+    .badge-due { background: #fef3c7; color: #92400e; }
+    .badge-outside { background: #f1f5f9; color: #64748b; }
+    .badge-overflow { background: #f1f5f9; color: #475569; border: 1px dashed #cbd5e1; }
+    .badge-paid { background: #dcfce7; color: #166534; }
+    .empty-state { text-align: center; padding: 20px 12px; color: var(--text-muted); font-size: 12px; }
+    .table-input-small { width: 44px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; text-align: center; }
+    .table-input-amount { width: 85px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; text-align: right; }
+    .table-input-text { width: 100px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; }
+    .table-select { padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; max-width: 120px; }
+  
+    /* MOBILE-FRIENDLY IN-APP MODAL & DIALOG SYSTEM */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      padding: 16px;
+    }
+    .modal-overlay.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 440px;
+      padding: 22px 20px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+    }
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* IN-APP TOAST NOTIFICATION */
+    .app-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 20px -3px rgba(0,0,0,0.35);
+      z-index: 100000;
+      opacity: 0;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .app-toast.active {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* TOUCH-FRIENDLY BUTTON TARGETS (38px minimum touch target for mobile) */
+    .btn-del-icon {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 18px;
+      min-width: 38px;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .btn-del-icon:hover, .btn-del-icon:active {
+      color: var(--danger);
+      background: #fee2e2;
+    }
+
+  
+    /* ENHANCED VISUAL SUITE STYLES (MOBILE MULTI-ROW & HIGH DPI SAFE) */
+    .visual-row-2col { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (min-width: 900px) { .visual-row-2col { grid-template-columns: 1fr 1fr; } }
+    .vis-box { background: #ffffff; border: 1px solid var(--border); border-radius: 10px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+    .vis-title { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
+
+    .chart-svg { width: 100%; height: 210px; background: #fafcff; border-radius: 8px; border: 1px solid #e2e8f0; display: block; overflow: visible; }
+
+    /* WATERFALL ALLOCATION BARS */
+    .alloc-rows-container { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .alloc-row-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+    .alloc-row-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #1e293b; }
+    .alloc-row-bar-bg { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .alloc-row-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+
+    /* 7-COLUMN MOBILE CALENDAR WITH EVENT PILLS */
+    .calendar-card { width: 100%; }
+    .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+    .calendar-grid-multi { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; }
+    .cal-day-cell { min-height: 54px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; padding: 3px 2px; cursor: pointer; transition: background 0.15s, border-color 0.15s; position: relative; overflow: hidden; }
+    .cal-day-cell:hover, .cal-day-cell:active { background: #eff6ff; border-color: var(--primary); }
+    .cal-day-cell.today { border: 2px solid var(--primary); background: #eff6ff; }
+    .cal-day-cell.selected { border: 2px solid #7c3aed; background: #faf5ff; }
+    .cal-day-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+    .cal-day-num { font-size: 11px; font-weight: 700; color: #334155; line-height: 1; margin-bottom: 3px; text-align: center; }
+    .cal-events-wrap { display: flex; flex-direction: column; gap: 2px; width: 100%; overflow: hidden; }
+    .cal-pill { font-size: 8.5px; font-weight: 700; padding: 1px 3px; border-radius: 3px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+    .pill-inc { background: #ccfbf1; color: #0f766e; }
+    .pill-fix { background: #dbeafe; color: #1e40af; }
+    .pill-inv { background: #ede9fe; color: #6d28d9; }
+    .pill-card { background: #fef3c7; color: #b45309; }
+
+    /* DAY DETAIL BANNER */
+    .cal-detail-card { margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .cal-detail-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+    .cal-detail-items { font-size: 11px; color: #475569; display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* UTILIZATION GAUGES */
+    .util-item { margin-bottom: 10px; }
+    .util-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 3px; color: #1e293b; }
+    .util-bar-bg { width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .util-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="header-row">
+      <div class="header-title">
+        <h1>Personal Finance & Forecast Tracker</h1>
+        <p>October 2026 • Mobile-Friendly Multi-Row Visuals Edition</p>
+      </div>
+      <div class="top-actions">
+        <!-- PWA Install Button -->
+        <button class="btn-install-app" id="pwaInstallBtn" onclick="triggerPwaInstall()" title="Install on phone as native app">📲 Install App</button>
+        <!-- 1-Tap Save to Phone -->
+        <button class="btn-download-app" onclick="downloadAppHtml()" title="Bakes your data directly into the file so Chrome never opens blank">📥 Save HTML with Data</button>
+        
+        <div class="month-control">
+          <label>Month:</label>
+          <select id="monthSelector" class="month-select" onchange="handleMonthChange(this.value)"></select>
+          <button class="btn-add" onclick="openNewMonthModal()" title="Start next month">+ Month</button>
+        </div>
+        <button class="btn-secondary" onclick="exportDataJSON()" title="Download backup">💾 Backup</button>
+        <button class="btn-secondary" onclick="document.getElementById('importFileInput').click()">📂 Restore</button>
+        <input type="file" id="importFileInput" style="display:none;" accept=".json" onchange="importDataJSON(event)">
+        <button class="btn-secondary" onclick="exportMonthCSV()">📊 CSV</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- FORECAST SCHEDULE CUTOFF BAR -->
+  <div class="forecast-window-bar">
+    <div class="forecast-window-label">
+      <span style="font-size: 16px;">🎯</span>
+      <div>
+        <strong>Credit Card Forecast Window:</strong>
+        <span style="font-size: 12px; color: #1e40af; margin-left: 4px;">Calculate deductions due by:</span>
+      </div>
+    </div>
+    <select id="forecastHorizon" class="forecast-window-select" onchange="syncAndRecalculateHorizon(this.value)">
+      <option value="all_month" selected>All Bills Due This Month (Full Month-End)</option>
+      <option value="due_15">Due on or before 15th of the month</option>
+      <option value="due_25">Due on or before 25th of the month</option>
+      <option value="due_today">Due on or before Today</option>
+    </select>
+  </div>
+
+  <!-- Summary Metric Cards -->
+  <div class="metrics-grid">
+    <div class="card">
+      <div class="card-title">Starting Bank Cash</div>
+      <div class="card-value primary" id="displayTotalBank">₹0</div>
+      <div class="card-helper">Liquid opening funds</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Expected Income</div>
+      <div class="card-value teal" id="displayTotalIncome">₹0</div>
+      <div class="card-helper" id="displayIncomeHelper">Pending arrival</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Planned Outflows</div>
+      <div class="card-value purple" id="displayPlannedBankPending">₹0</div>
+      <div class="card-helper">Bills + Investments pending</div>
+    </div>
+    <div class="card">
+      <div class="card-title">CC Due in Window</div>
+      <div class="card-value warning" id="displayCCDue">₹0</div>
+      <div class="card-helper" id="displayDueDescription">All payments due this month</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Daily Expenses Spent</div>
+      <div class="card-value danger" id="displayTotalSpent">₹0</div>
+      <div class="card-helper" id="displayExpenseCount">0 recorded</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Forecasted Remaining</div>
+      <div class="card-value success" id="displayNetRemaining">₹0</div>
+      <div class="card-helper">Month-end projected surplus</div>
+    </div>
+  </div>
+
+  <!-- ================= VISUAL TRACKERS MASTER SUITE (ALL MULTI-ROW ON MOBILE) ================= -->
+  
+  <!-- VISUAL ROW 1: MOBILE MULTI-ROW WATERFALL & MULTI-ROW CALENDAR GRID -->
+  <div class="visual-row-2col">
+    <!-- Visual 1: Multi-Row Monthly Cash Allocation Waterfall -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>💧 Monthly Cash Allocation Breakdown</span>
+        <span id="allocTotalLabel" style="font-size: 11px; color: var(--text-muted);"></span>
+      </div>
+      <div class="alloc-rows-container" id="allocRowsContainer">
+        <!-- Rendered as full mobile-friendly multi-rows by JS -->
+      </div>
+    </div>
+
+    <!-- Visual 2: Multi-Row 7-Column Monthly Event Calendar Grid -->
+    <div class="vis-box calendar-card">
+      <div class="vis-title">
+        <span>📅 Monthly Payment Calendar (October)</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Multi-Row Grid</span>
+      </div>
+      <div class="calendar-weekdays">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+      
+      <div class="calendar-grid-multi" id="calendarGridMulti">
+        <!-- 7-column multi-row calendar grid rendered by JS -->
+      </div>
+      <div class="cal-detail-card" id="calDetailCard">
+        <div class="cal-detail-title">📅 <span id="calDetailDate">Tap any calendar day</span></div>
+        <div class="cal-detail-items" id="calDetailText">View scheduled payments, bills, and incomes</div>
+      </div>
+
+      <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; font-size: 10px; color: var(--text-muted);">
+        <span><span style="display:inline-block;width:6px;height:6px;background:#0d9488;border-radius:50%;margin-right:3px;"></span> Income</span>
+        <span><span style="display:inline-block;width:6px;height:6px;background:#3b82f6;border-radius:50%;margin-right:3px;"></span> Fixed Bill</span>
+        <span><span style="display:inline-block;width:6px;height:6px;background:#7c3aed;border-radius:50%;margin-right:3px;"></span> Investment</span>
+        <span><span style="display:inline-block;width:6px;height:6px;background:#f59e0b;border-radius:50%;margin-right:3px;"></span> Card Statement</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISUAL ROW 2: OVERALL MOM CASHFLOW & CREDIT CARD UTILIZATION -->
+  <div class="visual-row-2col">
+    <!-- Visual 3: Month-on-Month Comparison Bar Chart -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>📊 Month-on-Month Overall Cashflow & Liability</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Balance Trajectory</span>
+      </div>
+      <svg id="cashflowMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="display: flex; justify-content: center; gap: 12px; margin-top: 6px; font-size: 11px;">
+        <span style="color: #2563eb;">■ Bank Cash</span>
+        <span style="color: #0d9488;">■ Income</span>
+        <span style="color: #d97706;">■ CC Liability</span>
+        <span style="color: #dc2626;">■ Outflows</span>
+      </div>
+    </div>
+
+    <!-- Visual 4: Credit Card Utilization Health Gauges -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>💳 Credit Card Utilization Health Gauges</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Target: &lt; 30% per card</span>
+      </div>
+      <div id="utilizationContainer"></div>
+    </div>
+  </div>
+
+  <!-- VISUAL ROW 3: CATEGORY EXPENSE TRENDS (MOM & CURRENT SHARE) -->
+  <div class="visual-row-2col">
+    <!-- Visual 5: Month-on-Month Expense Tracking by Category -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>🏷️ Month-on-Month Expenses by Category</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Fuel • Home • Personal • Food • Adhoc</span>
+      </div>
+      <svg id="categoryMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+        <span style="color: #f97316;">■ Fuel</span>
+        <span style="color: #3b82f6;">■ Home</span>
+        <span style="color: #8b5cf6;">■ Personal</span>
+        <span style="color: #10b981;">■ Food</span>
+        <span style="color: #ec4899;">■ Adhoc</span>
+      </div>
+    </div>
+
+    <!-- Visual 6: Active Month Category Share Breakdown (Multi-Row) -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>🍕 Active Month Category Share Breakdown</span>
+        <span id="catTotalSpentLabel" style="font-size: 11px; color: var(--text-muted);"></span>
+      </div>
+      <div id="categoryBreakdownRows" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- VISUAL ROW 4: INVESTMENT TRACKER & PORTFOLIO BREAKDOWN -->
+  <div class="visual-row-2col">
+    <!-- Visual 7: Month-on-Month Total Wealth Invested -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>📈 Month-on-Month Total Wealth Invested</span>
+        <span style="font-size: 11px; color: var(--text-muted);">RD • SIP • Kuris • KSFE • Sukanya • ULIP</span>
+      </div>
+      <svg id="investMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--purple); font-weight: 600;">
+        ■ Total Monthly Capital Invested (Wealth Accumulation)
+      </div>
+    </div>
+
+    <!-- Visual 8: Active Month Investment Portfolio Breakdown (Multi-Row) -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>🏛️ Active Month Investment Portfolio Breakdown</span>
+        <span id="investTotalActiveLabel" style="font-size: 11px; color: var(--text-muted);"></span>
+      </div>
+      <div id="investPortfolioRows" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+  </div>
+
+  <!-- ================= FINANCIAL LEDGER SECTIONS ================= -->
+
+  <!-- SECTION 1: Bank Accounts -->
+  <div class="card">
+    <div class="section-header">
+      <h2>1. Bank Accounts</h2>
+      <button class="btn-add" onclick="addAccountPrompt()">+ Add Account</button>
+    </div>
+    <div class="accounts-grid" id="accountsContainer"></div>
+  </div>
+
+  <!-- SECTION 2: Income -->
+  <div class="card">
+    <div class="section-header">
+      <h2>2. Income Planning</h2>
+      <button class="btn-add" onclick="addIncomePrompt()">+ Add Income</button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Income Source</th>
+            <th style="text-align: center;">Expected Day</th>
+            <th>Deposit To</th>
+            <th style="text-align: right;">Amount (₹)</th>
+            <th style="text-align: center;">Received?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="incomeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Planned Bills & Investments -->
+  <div class="two-col-grid">
+    <div class="card">
+      <div class="section-header">
+        <h2>3A. Fixed Expenses</h2>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11px; color: var(--text-muted);">Pending: <strong id="fixedPendingTotal">₹0</strong></span>
+          <button class="btn-add" onclick="addFixedPrompt()">+ Add Bill</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th style="text-align: center;">Day</th>
+              <th>Deduct From</th>
+              <th style="text-align: right;">Amount (₹)</th>
+              <th style="text-align: center;">Paid?</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="fixedExpensesBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <h2>3B. Investments</h2>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11px; color: var(--text-muted);">Pending: <strong id="investPendingTotal">₹0</strong></span>
+          <button class="btn-add" onclick="addInvestPrompt()">+ Add Investment</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Investment</th>
+              <th style="text-align: center;">Day</th>
+              <th>Deduct From</th>
+              <th style="text-align: right;">Amount (₹)</th>
+              <th style="text-align: center;">Paid?</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="investmentsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Credit Cards -->
+  <div class="card">
+    <div class="section-header">
+      <h2>4. Credit Cards</h2>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span style="font-size: 11px; color: var(--text-muted);">Total Liability (Billed + Unbilled): <strong id="displayTotalLiability">₹0</strong></span>
+        <button class="btn-add" onclick="addCardPrompt()">+ Add Card</button>
+      </div>
+    </div>
+
+    <!-- Secondary Window Selector in Section 4 -->
+    <div style="background: #f1f5f9; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+      <span style="font-size: 12px; color: #334155; font-weight: 600;">Due-Date Payment Filter:</span>
+      <select id="forecastHorizonCards" style="padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: 500;" onchange="syncAndRecalculateHorizon(this.value)">
+        <option value="all_month" selected>All Bills Due This Month (Full Month-End)</option>
+        <option value="due_15">Due on or before 15th of the month</option>
+        <option value="due_25">Due on or before 25th of the month</option>
+        <option value="due_today">Due on or before Today</option>
+      </select>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Card Name</th>
+            <th style="text-align: right;">Limit</th>
+            <th style="text-align: center;">Bill Day</th>
+            <th style="text-align: center;">Due Day</th>
+            <th style="text-align: right;">Billed Statement (Due This Month)</th>
+            <th style="text-align: right;">Unbilled Spend (Rolls to Next Month)</th>
+            <th style="text-align: right;">Total Used</th>
+            <th style="text-align: center;">Billing Cycle / Status</th>
+            <th>Pay From Bank</th>
+            <th style="text-align: center;">Paid?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="creditCardsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 5: Daily Expenses -->
+  <div class="content-grid">
+    <div class="card">
+      <h2 style="font-size: 15px; margin-bottom: 12px;">5. Record Daily Expense</h2>
+      <form id="expenseForm">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="category" required>
+            <option value="Fuel">Fuel</option>
+            <option value="Home">Home / Groceries</option>
+            <option value="Personal">Personal</option>
+            <option value="Food">Food / Dining</option>
+            <option value="Adhoc">Adhoc / Miscellaneous</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Payment Source</label>
+          <select id="paymentSource" required>
+            <optgroup label="Bank Accounts" id="expenseBankOptGroup"></optgroup>
+            <optgroup label="Credit Cards" id="expenseCardOptGroup"></optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="description" placeholder="e.g., Petrol / Groceries" required>
+        </div>
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="amount" placeholder="e.g., 1500" min="1" step="any" required>
+        </div>
+        <button type="submit" class="btn-primary">+ Record Expense</button>
+      </form>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <h2>Daily Expense History</h2>
+        <span id="historyBadge" style="font-size: 11px; color: var(--text-muted);">0 items</span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Source</th>
+              <th>Description</th>
+              <th style="text-align: right;">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="expenseTableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state">No expenses logged yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- IN-APP UNIVERSAL FORM MODAL -->
+<div class="modal-overlay" id="appModalOverlay">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h3 class="modal-title" id="appModalTitle" style="margin:0;">Add Item</h3>
+      <button class="btn-del-icon" onclick="closeAppModal()" style="font-size:22px; font-weight:700;" title="Close">&times;</button>
+    </div>
+    <div id="appModalBody"></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+      <button class="btn-secondary" onclick="closeAppModal()" style="padding:8px 14px; font-size:13px;">Cancel</button>
+      <button class="btn-primary" style="width:auto; padding:8px 20px; font-size:13px;" id="appModalSubmitBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- IN-APP CONFIRMATION MODAL -->
+<div class="modal-overlay" id="appConfirmModal">
+  <div class="modal-card" style="max-width:360px;">
+    <h3 class="modal-title" id="appConfirmTitle" style="color:var(--danger); margin-bottom:8px;">Confirm Deletion</h3>
+    <p id="appConfirmMsg" style="font-size:13px; color:#475569; margin-bottom:18px; line-height:1.4;"></p>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn-secondary" onclick="closeAppConfirm()" style="padding:8px 14px; font-size:13px;">Cancel</button>
+      <button class="btn-primary" style="width:auto; padding:8px 20px; font-size:13px; background:var(--danger);" onclick="executeConfirmAction()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- IN-APP TOAST NOTIFICATION -->
+<div id="appToast" class="app-toast"></div>
+
+<script>
+
+  // ================= IN-APP NOTIFICATIONS & MODALS (VIVO & CHROME SAFE) =================
+  function showToast(message, isSuccess = true) {
+    const t = document.getElementById('appToast');
+    if (!t) return;
+    t.innerHTML = (isSuccess ? '✓ ' : '⚠️ ') + message;
+    t.style.background = isSuccess ? '#16a34a' : '#1e293b';
+    t.classList.add('active');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => {
+      if (t) t.classList.remove('active');
+    }, 3200);
+  }
+
+  let onConfirmCallback = null;
+  function showConfirmDialog(title, message, callback) {
+    const titleEl = document.getElementById('appConfirmTitle');
+    const msgEl = document.getElementById('appConfirmMsg');
+    const modal = document.getElementById('appConfirmModal');
+    if (titleEl) titleEl.innerText = title;
+    if (msgEl) msgEl.innerHTML = message;
+    onConfirmCallback = callback;
+    if (modal) modal.classList.add('active');
+  }
+
+  function closeAppConfirm() {
+    const modal = document.getElementById('appConfirmModal');
+    if (modal) modal.classList.remove('active');
+    onConfirmCallback = null;
+  }
+
+  function executeConfirmAction() {
+    if (typeof onConfirmCallback === 'function') {
+      onConfirmCallback();
+    }
+    closeAppConfirm();
+  }
+
+  function closeAppModal() {
+    const modal = document.getElementById('appModalOverlay');
+    if (modal) modal.classList.remove('active');
+  }
+
+  window.addEventListener('click', function(e) {
+    const appModal = document.getElementById('appModalOverlay');
+    const confModal = document.getElementById('appConfirmModal');
+    if (e.target === appModal) closeAppModal();
+    if (e.target === confModal) closeAppConfirm();
+  });
+
+  // Safe DOM text setter helpers
+  function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text;
+  }
+  function safeSetHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  function syncAndRecalculateHorizon(val) {
+    const sel1 = document.getElementById('forecastHorizon');
+    const sel2 = document.getElementById('forecastHorizonCards');
+    if (sel1) sel1.value = val;
+    if (sel2) sel2.value = val;
+    updateCalculationsOnly();
+  }
+
+  // ================= IN-APP MODAL ADD & DELETE ACTIONS =================
+  function addAccountPrompt() {
+    document.getElementById('appModalTitle').innerText = 'Add Bank Account';
+    document.getElementById('appModalBody').innerHTML = `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Bank Account Name</label>
+        <input type="text" id="modalInputBankName" placeholder="e.g. Axis Bank / Kotak" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Initial Cash Balance (₹)</label>
+        <input type="number" id="modalInputBankBal" placeholder="0" value="0" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Add Account';
+    btn.onclick = function() {
+      const name = document.getElementById('modalInputBankName').value.trim();
+      const bal = parseFloat(document.getElementById('modalInputBankBal').value) || 0;
+      if (!name) return showToast('Please enter an account name', false);
+      const id = 'bank_' + Date.now();
+      getCurrentMonthData().banks.push({ id, name, balance: bal });
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      closeAppModal();
+      showToast(`Added ${name}`);
+    };
+    document.getElementById('appModalOverlay').classList.add('active');
+    setTimeout(() => { const inp = document.getElementById('modalInputBankName'); if (inp) inp.focus(); }, 100);
+  }
+
+  function deleteBank(idx) {
+    const cur = getCurrentMonthData();
+    if (cur.banks.length <= 1) return showToast('You must keep at least one bank account', false);
+    const b = cur.banks[idx];
+    showConfirmDialog('Delete Bank Account', `Are you sure you want to delete <strong>${b.name}</strong>?`, function() {
+      cur.banks.splice(idx, 1);
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      showToast(`Deleted ${b.name}`);
+    });
+  }
+
+  function addIncomePrompt() {
+    const cur = getCurrentMonthData();
+    const bankOpts = cur.banks.map(b => `<option value="bank:${b.id}">${b.name}</option>`).join('');
+    document.getElementById('appModalTitle').innerText = 'Add Planned Income';
+    document.getElementById('appModalBody').innerHTML = `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Income Source</label>
+        <input type="text" id="modalInputIncName" placeholder="e.g. Salary / Rental / Freelance" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Expected Day of Month (1 - 31)</label>
+        <input type="number" id="modalInputIncDay" min="1" max="31" value="1" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Deposit Into Account</label>
+        <select id="modalInputIncTarget" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">${bankOpts}</select>
+      </div>
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Expected Amount (₹)</label>
+        <input type="number" id="modalInputIncAmt" placeholder="0" value="0" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Add Income';
+    btn.onclick = function() {
+      const name = document.getElementById('modalInputIncName').value.trim();
+      const day = parseInt(document.getElementById('modalInputIncDay').value) || 1;
+      const target = document.getElementById('modalInputIncTarget').value;
+      const amount = parseFloat(document.getElementById('modalInputIncAmt').value) || 0;
+      if (!name) return showToast('Please enter an income name', false);
+      cur.incomes.push({ name, day, target, amount, isReceived: false });
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      closeAppModal();
+      showToast(`Added ${name}`);
+    };
+    document.getElementById('appModalOverlay').classList.add('active');
+    setTimeout(() => { const inp = document.getElementById('modalInputIncName'); if (inp) inp.focus(); }, 100);
+  }
+
+  function deleteIncome(idx) {
+    const cur = getCurrentMonthData();
+    const item = cur.incomes[idx];
+    showConfirmDialog('Delete Income', `Are you sure you want to remove <strong>${item.name}</strong>?`, function() {
+      cur.incomes.splice(idx, 1);
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      showToast(`Deleted ${item.name}`);
+    });
+  }
+
+  function addFixedPrompt() {
+    const cur = getCurrentMonthData();
+    const srcOpts = getSourceOptions('');
+    document.getElementById('appModalTitle').innerText = 'Add Fixed Bill / EMI';
+    document.getElementById('appModalBody').innerHTML = `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Bill / Expense Name</label>
+        <input type="text" id="modalInputFixName" placeholder="e.g. Rent / Electricity / School Fee" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Due Day of Month (1 - 31)</label>
+        <input type="number" id="modalInputFixDay" min="1" max="31" value="5" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Payment Source (Bank or Card)</label>
+        <select id="modalInputFixSource" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">${srcOpts}</select>
+      </div>
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Amount (₹)</label>
+        <input type="number" id="modalInputFixAmt" placeholder="0" value="0" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Add Bill';
+    btn.onclick = function() {
+      const name = document.getElementById('modalInputFixName').value.trim();
+      const day = parseInt(document.getElementById('modalInputFixDay').value) || 5;
+      const source = document.getElementById('modalInputFixSource').value;
+      const amount = parseFloat(document.getElementById('modalInputFixAmt').value) || 0;
+      if (!name) return showToast('Please enter a bill name', false);
+      cur.fixed.push({ name, day, source, amount, isPaid: false });
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      closeAppModal();
+      showToast(`Added ${name}`);
+    };
+    document.getElementById('appModalOverlay').classList.add('active');
+    setTimeout(() => { const inp = document.getElementById('modalInputFixName'); if (inp) inp.focus(); }, 100);
+  }
+
+  function deleteFixed(idx) {
+    const cur = getCurrentMonthData();
+    const item = cur.fixed[idx];
+    showConfirmDialog('Delete Fixed Bill', `Are you sure you want to remove <strong>${item.name}</strong>?`, function() {
+      cur.fixed.splice(idx, 1);
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      showToast(`Deleted ${item.name}`);
+    });
+  }
+
+  function addInvestPrompt() {
+    const cur = getCurrentMonthData();
+    const srcOpts = getSourceOptions('');
+    document.getElementById('appModalTitle').innerText = 'Add Investment';
+    document.getElementById('appModalBody').innerHTML = `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Investment Name</label>
+        <input type="text" id="modalInputInvName" placeholder="e.g. SIP / RD / Kuri / KSFE" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Debit Day of Month (1 - 31)</label>
+        <input type="number" id="modalInputInvDay" min="1" max="31" value="10" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Debit Source (Bank or Card)</label>
+        <select id="modalInputInvSource" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">${srcOpts}</select>
+      </div>
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Amount (₹)</label>
+        <input type="number" id="modalInputInvAmt" placeholder="0" value="0" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Add Investment';
+    btn.onclick = function() {
+      const name = document.getElementById('modalInputInvName').value.trim();
+      const day = parseInt(document.getElementById('modalInputInvDay').value) || 10;
+      const source = document.getElementById('modalInputInvSource').value;
+      const amount = parseFloat(document.getElementById('modalInputInvAmt').value) || 0;
+      if (!name) return showToast('Please enter an investment name', false);
+      cur.invest.push({ name, day, source, amount, isPaid: false });
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      closeAppModal();
+      showToast(`Added ${name}`);
+    };
+    document.getElementById('appModalOverlay').classList.add('active');
+    setTimeout(() => { const inp = document.getElementById('modalInputInvName'); if (inp) inp.focus(); }, 100);
+  }
+
+  function deleteInvest(idx) {
+    const cur = getCurrentMonthData();
+    const item = cur.invest[idx];
+    showConfirmDialog('Delete Investment', `Are you sure you want to remove <strong>${item.name}</strong>?`, function() {
+      cur.invest.splice(idx, 1);
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      showToast(`Deleted ${item.name}`);
+    });
+  }
+
+  function addCardPrompt() {
+    const cur = getCurrentMonthData();
+    const bankOpts = cur.banks.map(b => `<option value="bank:${b.id}">${b.name}</option>`).join('');
+    document.getElementById('appModalTitle').innerText = 'Add Credit Card';
+    document.getElementById('appModalBody').innerHTML = `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Credit Card Name</label>
+        <input type="text" id="modalInputCardName" placeholder="e.g. ICICI Coral / HDFC Millennia" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Total Credit Limit (₹)</label>
+        <input type="number" id="modalInputCardLimit" placeholder="100000" value="100000" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Statement Bill Day of Month (e.g., 16)</label>
+        <input type="number" id="modalInputCardBillDay" min="1" max="31" value="15" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Payment Due Day of Month (e.g., 5)</label>
+        <input type="number" id="modalInputCardDueDay" min="1" max="31" value="5" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Default Bank to Pay From</label>
+        <select id="modalInputCardPaySource" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">${bankOpts}</select>
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Add Card';
+    btn.onclick = function() {
+      const name = document.getElementById('modalInputCardName').value.trim();
+      const limit = parseFloat(document.getElementById('modalInputCardLimit').value) || 100000;
+      const billDay = parseInt(document.getElementById('modalInputCardBillDay').value) || 15;
+      const dueDay = parseInt(document.getElementById('modalInputCardDueDay').value) || 5;
+      const paySource = document.getElementById('modalInputCardPaySource').value;
+      if (!name) return showToast('Please enter a card name', false);
+      const id = 'cc_' + Date.now();
+      getCurrentMonthData().cards.push({ id, name, limit, billDay, dueDay, billed: 0, unbilled: 0, paySource, isPaid: false });
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      closeAppModal();
+      showToast(`Added ${name}`);
+    };
+    document.getElementById('appModalOverlay').classList.add('active');
+    setTimeout(() => { const inp = document.getElementById('modalInputCardName'); if (inp) inp.focus(); }, 100);
+  }
+
+  function deleteCard(idx) {
+    const cur = getCurrentMonthData();
+    const card = cur.cards[idx];
+    showConfirmDialog('Delete Credit Card', `Are you sure you want to remove <strong>${card.name}</strong>?`, function() {
+      cur.cards.splice(idx, 1);
+      saveData();
+      renderAllTables();
+      updateCalculationsOnly();
+      showToast(`Deleted ${card.name}`);
+    });
+  }
+
+  function openNewMonthModal() {
+    document.getElementById('appModalTitle').innerText = 'Start New Month';
+    document.getElementById('appModalBody').innerHTML = `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">New Month Name (e.g., Nov-2026)</label>
+        <input type="text" id="modalInputMonthName" placeholder="Nov-2026" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Roll Over Settings</label>
+        <select id="modalInputMonthCarry" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">
+          <option value="rollover">Roll over ending bank balances as new opening balances</option>
+          <option value="template">Copy bills, incomes, & cards template only (Set balances to 0)</option>
+        </select>
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Create Month';
+    btn.onclick = function() {
+      const name = document.getElementById('modalInputMonthName').value.trim();
+      if (!name) return showToast('Please enter a month name', false);
+      if (appState.months[name]) return showToast('Month already exists!', false);
+      const carry = document.getElementById('modalInputMonthCarry').value;
+      const cur = getCurrentMonthData();
+      const newMonthObj = {
+        banks: JSON.parse(JSON.stringify(cur.banks)),
+        incomes: cur.incomes.map(i => ({ ...i, isReceived: false })),
+        fixed: cur.fixed.map(f => ({ ...f, isPaid: false })),
+        invest: cur.invest.map(i => ({ ...i, isPaid: false })),
+        cards: cur.cards.map(c => ({ ...c, billed: parseFloat(c.unbilled) || 0, unbilled: 0, isPaid: false })),
+        expenses: []
+      };
+      if (carry === 'template') {
+        newMonthObj.banks.forEach(b => b.balance = 0);
+      }
+      appState.months[name] = newMonthObj;
+      appState.activeMonth = name;
+      saveData();
+      renderMonthSelector();
+      renderAllTables();
+      updateCalculationsOnly();
+      closeAppModal();
+      showToast(`Created ${name}`);
+    };
+    document.getElementById('appModalOverlay').classList.add('active');
+    setTimeout(() => { const inp = document.getElementById('modalInputMonthName'); if (inp) inp.focus(); }, 100);
+  }
+
+  // ================= EMBEDDED PERSISTENCE ENGINE (DATA NEVER DISAPPEARS) =================
+  // EMBEDDED_DATA_START
+  const EMBEDDED_DATA = null;
+  // EMBEDDED_DATA_END
+
+  function hasNonZeroData(stateObj) {
+    if (!stateObj || !stateObj.months) return false;
+    const cur = stateObj.months[stateObj.activeMonth] || Object.values(stateObj.months)[0];
+    if (!cur) return false;
+    const cash = cur.banks ? cur.banks.reduce((s, b) => s + (parseFloat(b.balance) || 0), 0) : 0;
+    const inc = cur.incomes ? cur.incomes.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) : 0;
+    const exp = cur.expenses ? cur.expenses.length : 0;
+    const fix = cur.fixed ? cur.fixed.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0) : 0;
+    const cards = cur.cards ? cur.cards.reduce((s, c) => s + (parseFloat(c.billed) || 0) + (parseFloat(c.unbilled) || 0), 0) : 0;
+    return (cash > 0 || inc > 0 || exp > 0 || fix > 0 || cards > 0);
+  }
+
+  // CLEAN ZEROED OCTOBER 2026 STATE TEMPLATE
+  const CLEAN_ZERO_STATE = {
+    months: {
+      'Oct-2026': {
+        banks: [
+          { id: 'icici', name: 'ICICI Bank', balance: 0 },
+          { id: 'hdfc', name: 'HDFC Bank', balance: 0 },
+          { id: 'sbi', name: 'SBI Bank', balance: 0 }
+        ],
+        incomes: [
+          { name: 'Salary', day: 1, target: 'bank:hdfc', amount: 0, isReceived: false },
+          { name: 'Reimbursement / Other', day: 10, target: 'bank:icici', amount: 0, isReceived: false }
+        ],
+        fixed: [
+          { name: 'Rent', day: 5, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Phone', day: 5, amount: 0, source: 'bank:icici', isPaid: false },
+          { name: 'Internet', day: 5, amount: 0, source: 'bank:icici', isPaid: false },
+          { name: 'School Fee', day: 10, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'School Bus', day: 10, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Bajaj Life', day: 15, amount: 0, source: 'bank:sbi', isPaid: false },
+          { name: 'Madras', day: 1, amount: 0, source: 'bank:sbi', isPaid: false }
+        ],
+        invest: [
+          { name: 'RD', day: 5, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'SIP', day: 5, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Kuri 1', day: 7, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Kuri 2', day: 7, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Kuri 3', day: 7, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'KSFE', day: 10, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Sukanya', day: 10, amount: 0, source: 'bank:sbi', isPaid: false },
+          { name: 'ULIP', day: 12, amount: 0, source: 'bank:hdfc', isPaid: false },
+          { name: 'Bajaj Child', day: 15, amount: 0, source: 'bank:hdfc', isPaid: false }
+        ],
+        cards: [
+          { id: 'cc_hdfc', name: 'HDFC', limit: 150000, billDay: 12, dueDay: 1, billed: 0, unbilled: 0, isPaid: false },
+          { id: 'cc_sbielite', name: 'SBI Elite', limit: 183000, billDay: 7, dueDay: 27, billed: 0, unbilled: 0, isPaid: false },
+          { id: 'cc_icicicorel', name: 'ICICI Corel', limit: 250000, billDay: 25, dueDay: 15, billed: 0, unbilled: 0, isPaid: false },
+          { id: 'cc_iciciamazon', name: 'ICICI Amazon', limit: 260000, billDay: 3, dueDay: 23, billed: 0, unbilled: 0, isPaid: false },
+          { id: 'cc_sbibpcl', name: 'SBI BPCL', limit: 90000, billDay: 18, dueDay: 8, billed: 0, unbilled: 0, isPaid: false }
+        ],
+        expenses: []
+      }
+    },
+    activeMonth: 'Oct-2026'
+  };
+
+  function loadSavedState() {
+    // 1. Try reading from localStorage
+    try {
+      const fromLs = localStorage.getItem('tracker_multi_row_mobile_suite');
+      if (fromLs) {
+        const parsed = JSON.parse(fromLs);
+        if (parsed && parsed.months && hasNonZeroData(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('localStorage read error:', e);
+    }
+
+    // 2. Try reading from EMBEDDED_DATA baked into this exact HTML file
+    if (typeof EMBEDDED_DATA !== 'undefined' && EMBEDDED_DATA && EMBEDDED_DATA.months) {
+      return JSON.parse(JSON.stringify(EMBEDDED_DATA));
+    }
+
+    // 3. Fallback to localStorage state even if 0
+    try {
+      const fromLs = localStorage.getItem('tracker_multi_row_mobile_suite');
+      if (fromLs) {
+        const parsed = JSON.parse(fromLs);
+        if (parsed && parsed.months) return parsed;
+      }
+    } catch(e) {}
+
+    // 4. Default clean slate
+    return JSON.parse(JSON.stringify(CLEAN_ZERO_STATE));
+  }
+
+  let appState = loadSavedState();
+
+  function saveData(syncDb = true) {
+    try {
+      localStorage.setItem('tracker_multi_row_mobile_suite', JSON.stringify(appState));
+    } catch (e) {
+      console.warn('localStorage write error:', e);
+    }
+    if (syncDb && typeof saveToIndexedDB === 'function') {
+      saveToIndexedDB(appState);
+    }
+  }
+
+  function formatINR(val) { return '₹' + Number(val).toLocaleString('en-IN'); }
+
+  function getCurrentMonthData() {
+    if (!appState.months[appState.activeMonth]) {
+      appState.activeMonth = Object.keys(appState.months)[0] || 'Oct-2026';
+    }
+    return appState.months[appState.activeMonth];
+  }
+
+  function renderMonthSelector() {
+    const sel = document.getElementById('monthSelector'); sel.innerHTML = '';
+    Object.keys(appState.months).forEach(mKey => {
+      const opt = document.createElement('option'); opt.value = mKey; opt.innerText = mKey;
+      if (mKey === appState.activeMonth) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function handleMonthChange(newMonth) {
+    appState.activeMonth = newMonth;
+    saveData(); renderAllTables(); updateCalculationsOnly();
+  }
+
+  // ================= INDEXEDDB PERSISTENCE (SURVIVES BROWSER RESTARTS) =================
+  function initIndexedDB(callback) {
+    if (!window.indexedDB) return;
+    try {
+      const req = indexedDB.open('FinanceTrackerAppDB', 1);
+      req.onupgradeneeded = function(e) {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('stateStore')) {
+          db.createObjectStore('stateStore');
+        }
+      };
+      req.onsuccess = function(e) {
+        callback(e.target.result);
+      };
+    } catch(err) {
+      console.warn('IndexedDB init error:', err);
+    }
+  }
+
+  function saveToIndexedDB(data) {
+    initIndexedDB(db => {
+      try {
+        const tx = db.transaction(['stateStore'], 'readwrite');
+        tx.objectStore('stateStore').put(data, 'saved_app_state');
+      } catch(err) {}
+    });
+  }
+
+  function checkIndexedDBAutoRecovery() {
+    initIndexedDB(db => {
+      try {
+        const tx = db.transaction(['stateStore'], 'readonly');
+        const req = tx.objectStore('stateStore').get('saved_app_state');
+        req.onsuccess = function() {
+          const dbData = req.result;
+          if (dbData && dbData.months && hasNonZeroData(dbData)) {
+            if (!hasNonZeroData(appState)) {
+              appState = dbData;
+              saveData(false);
+              renderMonthSelector();
+              renderAllTables();
+              updateCalculationsOnly();
+              showToast('Auto-restored your data from local database!');
+            }
+          }
+        };
+      } catch(err) {}
+    });
+  }
+
+  // ================= DOWNLOAD & IMPORT (SELF-BAKING HTML) =================
+  function downloadAppHtml() {
+    saveData();
+    let fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    
+    // Embed live appState directly into the HTML source
+    const liveJson = JSON.stringify(appState);
+    const regex = /\/\/\s*EMBEDDED_DATA_START[\s\S]*?\/\/\s*EMBEDDED_DATA_END/;
+    if (regex.test(fullHtml)) {
+      fullHtml = fullHtml.replace(regex, `// EMBEDDED_DATA_START\n  const EMBEDDED_DATA = ${liveJson};\n  // EMBEDDED_DATA_END`);
+    } else {
+      fullHtml = fullHtml.replace('<script>', `<script>\n  // EMBEDDED_DATA_START\n  const EMBEDDED_DATA = ${liveJson};\n  // EMBEDDED_DATA_END\n`);
+    }
+
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'My_Finance_Tracker_Mobile.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Saved! Your data is now permanently baked into this file.');
+  }
+
+  function exportDataJSON() {
+    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'Finance_Tracker_Backup.json';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function importDataJSON(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        appState = JSON.parse(evt.target.result);
+        saveData();
+        renderMonthSelector();
+        renderAllTables();
+        updateCalculationsOnly();
+        showToast('Restored! Tap "📥 Save HTML with Data" once to permanently lock your numbers into the file.', true);
+      } catch (err) { showToast('Error reading file', false); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function exportMonthCSV() {
+    const cur = getCurrentMonthData();
+    let csv = `Finance Tracker Export - ${appState.activeMonth}\n\n`;
+    csv += 'SECTION 1: BANK ACCOUNTS\nAccount,Balance\n';
+    cur.banks.forEach(b => csv += `"${b.name}",${b.balance}\n`);
+    csv += '\nSECTION 2: EXPECTED INCOMES\nSource,Day,Deposit To,Amount,Received?\n';
+    cur.incomes.forEach(i => csv += `"${i.name}",${i.day},"${i.target}",${i.amount},${i.isReceived ? 'Yes' : 'No'}\n`);
+    csv += '\nSECTION 3A: FIXED EXPENSES\nCategory,Day,Deduct From,Amount,Paid?\n';
+    cur.fixed.forEach(f => csv += `"${f.name}",${f.day},"${f.source}",${f.amount},${f.isPaid ? 'Yes' : 'No'}\n`);
+    csv += '\nSECTION 3B: INVESTMENTS\nInvestment,Day,Deduct From,Amount,Paid?\n';
+    cur.invest.forEach(inv => csv += `"${inv.name}",${inv.day},"${inv.source}",${inv.amount},${inv.isPaid ? 'Yes' : 'No'}\n`);
+    csv += '\nSECTION 4: CREDIT CARDS\nCard,Limit,Bill Day,Due Day,Billed (This Month),Unbilled (Next Month),Paid?\n';
+    cur.cards.forEach(c => csv += `"${c.name}",${c.limit},${c.billDay},${c.dueDay},${c.billed},${c.unbilled},${c.isPaid ? 'Yes' : 'No'}\n`);
+    csv += '\nSECTION 5: DAILY EXPENSES\nDate,Category,Source,Description,Amount\n';
+    cur.expenses.forEach(e => csv += `"${e.date}","${e.category}","${e.source}","${e.description}",${e.amount}\n`);
+
+    const a = document.createElement('a');
+    a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+    a.setAttribute('download', `Finance_Tracker_${appState.activeMonth}.csv`);
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+function getBankOptions(selected) {
+    const cur = getCurrentMonthData();
+    return cur.banks.map(b => `<option value="bank:${b.id}" ${selected === 'bank:' + b.id ? 'selected' : ''}>${b.name}</option>`).join('');
+  }
+
+  function getSourceOptions(selected) {
+    const cur = getCurrentMonthData();
+    let html = '<optgroup label="Banks">';
+    cur.banks.forEach(b => { html += `<option value="bank:${b.id}" ${selected === 'bank:' + b.id ? 'selected' : ''}>${b.name}</option>`; });
+    html += '</optgroup><optgroup label="Cards">';
+    cur.cards.forEach(c => { html += `<option value="card:${c.id}" ${selected === 'card:' + c.id ? 'selected' : ''}>${c.name} Card</option>`; });
+    html += '</optgroup>';
+    return html;
+  }
+
+  // ================= STRUCTURE RENDERING =================
+  
+  // ================= AUTOMATIC BANK DEDUCTION & PAYMENT RECONCILIATION =================
+  function toggleFixedPaid(idx, isChecked) {
+    const cur = getCurrentMonthData();
+    const f = cur.fixed[idx];
+    const amt = parseFloat(f.amount) || 0;
+
+    if (f.source && f.source.startsWith('bank:')) {
+      const bank = cur.banks.find(b => 'bank:' + b.id === f.source);
+      if (bank && amt > 0) {
+        if (isChecked) {
+          bank.balance = Math.max(0, (parseFloat(bank.balance) || 0) - amt);
+          f.lastPaidAmt = amt;
+          showToast(`Paid ${f.name} (${formatINR(amt)}) from ${bank.name}. Balance updated.`);
+        } else {
+          const refund = f.lastPaidAmt || amt;
+          bank.balance = (parseFloat(bank.balance) || 0) + refund;
+          f.lastPaidAmt = 0;
+          showToast(`Unmarked ${f.name}. ${formatINR(refund)} restored to ${bank.name}.`);
+        }
+      }
+    } else if (f.source && f.source.startsWith('card:')) {
+      const card = cur.cards.find(c => 'card:' + c.id === f.source);
+      if (card && amt > 0) {
+        if (isChecked) {
+          card.unbilled = (parseFloat(card.unbilled) || 0) + amt;
+          f.lastPaidAmt = amt;
+          showToast(`Charged ${f.name} (${formatINR(amt)}) to ${card.name}.`);
+        } else {
+          const refund = f.lastPaidAmt || amt;
+          card.unbilled = Math.max(0, (parseFloat(card.unbilled) || 0) - refund);
+          f.lastPaidAmt = 0;
+          showToast(`Removed charge from ${card.name}.`);
+        }
+        renderCardsStructure();
+      }
+    }
+
+    f.isPaid = isChecked;
+    saveData();
+    renderBanksStructure();
+    renderFixedStructure();
+    updateCalculationsOnly();
+  }
+
+  function toggleInvestPaid(idx, isChecked) {
+    const cur = getCurrentMonthData();
+    const inv = cur.invest[idx];
+    const amt = parseFloat(inv.amount) || 0;
+
+    if (inv.source && inv.source.startsWith('bank:')) {
+      const bank = cur.banks.find(b => 'bank:' + b.id === inv.source);
+      if (bank && amt > 0) {
+        if (isChecked) {
+          bank.balance = Math.max(0, (parseFloat(bank.balance) || 0) - amt);
+          inv.lastPaidAmt = amt;
+          showToast(`Invested ${inv.name} (${formatINR(amt)}) from ${bank.name}. Balance updated.`);
+        } else {
+          const refund = inv.lastPaidAmt || amt;
+          bank.balance = (parseFloat(bank.balance) || 0) + refund;
+          inv.lastPaidAmt = 0;
+          showToast(`Unmarked ${inv.name}. ${formatINR(refund)} restored to ${bank.name}.`);
+        }
+      }
+    } else if (inv.source && inv.source.startsWith('card:')) {
+      const card = cur.cards.find(c => 'card:' + c.id === inv.source);
+      if (card && amt > 0) {
+        if (isChecked) {
+          card.unbilled = (parseFloat(card.unbilled) || 0) + amt;
+          inv.lastPaidAmt = amt;
+        } else {
+          const refund = inv.lastPaidAmt || amt;
+          card.unbilled = Math.max(0, (parseFloat(card.unbilled) || 0) - refund);
+          inv.lastPaidAmt = 0;
+        }
+        renderCardsStructure();
+      }
+    }
+
+    inv.isPaid = isChecked;
+    saveData();
+    renderBanksStructure();
+    renderInvestStructure();
+    updateCalculationsOnly();
+  }
+
+  function toggleIncomeReceived(idx, isReceived) {
+    const cur = getCurrentMonthData();
+    const inc = cur.incomes[idx];
+    const amt = parseFloat(inc.amount) || 0;
+
+    if (inc.target && inc.target.startsWith('bank:')) {
+      const bank = cur.banks.find(b => 'bank:' + b.id === inc.target);
+      if (bank && amt > 0) {
+        if (isReceived) {
+          bank.balance = (parseFloat(bank.balance) || 0) + amt;
+          inc.lastRecAmt = amt;
+          showToast(`Received ${inc.name} (${formatINR(amt)}) in ${bank.name}. Balance updated.`);
+        } else {
+          const refund = inc.lastRecAmt || amt;
+          bank.balance = Math.max(0, (parseFloat(bank.balance) || 0) - refund);
+          inc.lastRecAmt = 0;
+          showToast(`Unmarked ${inc.name}. ${formatINR(refund)} deducted from ${bank.name}.`);
+        }
+      }
+    }
+
+    inc.isReceived = isReceived;
+    saveData();
+    renderBanksStructure();
+    renderIncomesStructure();
+    updateCalculationsOnly();
+  }
+
+  function toggleCardPaid(idx, isChecked) {
+    const cur = getCurrentMonthData();
+    const c = cur.cards[idx];
+    const bAmt = parseFloat(c.billed) || 0;
+    const paySrc = c.paySource || (cur.banks.length > 0 ? 'bank:' + cur.banks[0].id : '');
+
+    if (isChecked) {
+      if (bAmt <= 0) {
+        c.isPaid = true;
+        saveData();
+        renderBanksStructure();
+        renderCardsStructure();
+        updateCalculationsOnly();
+        showToast(`${c.name} marked as paid (₹0 billed).`);
+        return;
+      }
+
+      const bank = cur.banks.find(b => 'bank:' + b.id === paySrc);
+      if (!bank) {
+        showToast('Please select a valid bank account to pay from.', false);
+        renderCardsStructure();
+        return;
+      }
+
+      bank.balance = Math.max(0, (parseFloat(bank.balance) || 0) - bAmt);
+      c.isPaid = true;
+      c.lastPaidFrom = bank.name;
+      c.lastPaidAmt = bAmt;
+      saveData();
+      renderBanksStructure();
+      renderCardsStructure();
+      updateCalculationsOnly();
+      showToast(`Paid ${formatINR(bAmt)} for ${c.name} from ${bank.name}. Balance updated.`);
+    } else {
+      const refundAmt = c.lastPaidAmt || bAmt;
+      const bank = cur.banks.find(b => 'bank:' + b.id === paySrc) || (c.lastPaidFrom ? cur.banks.find(b => b.name === c.lastPaidFrom) : null);
+      if (bank && refundAmt > 0) {
+        bank.balance = (parseFloat(bank.balance) || 0) + refundAmt;
+      }
+      c.isPaid = false;
+      c.lastPaidAmt = 0;
+      saveData();
+      renderBanksStructure();
+      renderCardsStructure();
+      updateCalculationsOnly();
+      showToast(`Unmarked card payment. ${formatINR(refundAmt)} restored to ${bank ? bank.name : 'account'}.`);
+    }
+  }
+
+  function renderBanksStructure() {
+    const cur = getCurrentMonthData();
+    const c = document.getElementById('accountsContainer'); c.innerHTML = '';
+    cur.banks.forEach((b, idx) => {
+      const div = document.createElement('div');
+      div.className = 'account-box';
+      div.id = `bank-box-${idx}`;
+      div.innerHTML = `
+        <div class="account-name-row">
+          <input type="text" class="account-name-input" value="${b.name}" oninput="updateBankField(${idx}, 'name', this.value)">
+          <button class="btn-del-icon" onclick="deleteBank(${idx})">&times;</button>
+        </div>
+        <div class="account-input-group">
+          <span class="currency-symbol">₹</span>
+          <input type="number" class="account-input" id="bank-input-${idx}" value="${b.balance}" min="0" oninput="updateBankField(${idx}, 'balance', this.value)">
+        </div>
+        <div class="account-subtext" id="bank-subtext-${idx}">
+          <span>Allocated Debits: ₹0</span>
+          <span>Proj: ₹0</span>
+        </div>
+      `;
+      c.appendChild(div);
+    });
+  }
+
+  function renderIncomesStructure() {
+    const cur = getCurrentMonthData();
+    const tbody = document.getElementById('incomeBody'); tbody.innerHTML = '';
+    cur.incomes.forEach((inc, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="table-input-text" value="${inc.name}" oninput="updateIncomeField(${idx}, 'name', this.value)"></td>
+        <td style="text-align:center;"><input type="number" class="table-input-small" value="${inc.day}" min="1" max="31" oninput="updateIncomeField(${idx}, 'day', this.value)"></td>
+        <td><select class="table-select" onchange="updateIncomeField(${idx}, 'target', this.value)">${getBankOptions(inc.target)}</select></td>
+        <td style="text-align:right;"><input type="number" class="table-input-amount" value="${inc.amount}" min="0" oninput="updateIncomeField(${idx}, 'amount', this.value)"></td>
+        <td style="text-align:center;"><input type="checkbox" style="width:16px; height:16px; cursor:pointer;" ${inc.isReceived ? 'checked' : ''} onchange="toggleIncomeReceived(${idx}, this.checked)" title="Mark received to deposit into account"></td>
+        <td style="text-align:center;"><button class="btn-del-icon" onclick="deleteIncome(${idx})">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderFixedStructure() {
+    const cur = getCurrentMonthData();
+    const tbody = document.getElementById('fixedExpensesBody'); tbody.innerHTML = '';
+    cur.fixed.forEach((f, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="table-input-text" value="${f.name}" oninput="updateFixedField(${idx}, 'name', this.value)"></td>
+        <td style="text-align:center;"><input type="number" class="table-input-small" value="${f.day}" min="1" max="31" oninput="updateFixedField(${idx}, 'day', this.value)"></td>
+        <td><select class="table-select" onchange="updateFixedField(${idx}, 'source', this.value)">${getSourceOptions(f.source)}</select></td>
+        <td style="text-align:right;"><input type="number" class="table-input-amount" value="${f.amount}" min="0" oninput="updateFixedField(${idx}, 'amount', this.value)"></td>
+        <td style="text-align:center;"><input type="checkbox" style="width:16px; height:16px; cursor:pointer;" ${f.isPaid ? 'checked' : ''} onchange="toggleFixedPaid(${idx}, this.checked)" title="Mark paid to deduct from respective account"></td>
+        <td style="text-align:center;"><button class="btn-del-icon" onclick="deleteFixed(${idx})">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderInvestStructure() {
+    const cur = getCurrentMonthData();
+    const tbody = document.getElementById('investmentsBody'); tbody.innerHTML = '';
+    cur.invest.forEach((inv, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="table-input-text" value="${inv.name}" oninput="updateInvestField(${idx}, 'name', this.value)"></td>
+        <td style="text-align:center;"><input type="number" class="table-input-small" value="${inv.day}" min="1" max="31" oninput="updateInvestField(${idx}, 'day', this.value)"></td>
+        <td><select class="table-select" onchange="updateInvestField(${idx}, 'source', this.value)">${getSourceOptions(inv.source)}</select></td>
+        <td style="text-align:right;"><input type="number" class="table-input-amount" value="${inv.amount}" min="0" oninput="updateInvestField(${idx}, 'amount', this.value)"></td>
+        <td style="text-align:center;"><input type="checkbox" style="width:16px; height:16px; cursor:pointer;" ${inv.isPaid ? 'checked' : ''} onchange="toggleInvestPaid(${idx}, this.checked)" title="Mark paid to deduct from respective account"></td>
+        <td style="text-align:center;"><button class="btn-del-icon" onclick="deleteInvest(${idx})">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderCardsStructure() {
+    const cur = getCurrentMonthData();
+    const tbody = document.getElementById('creditCardsBody'); tbody.innerHTML = '';
+    const defaultBank = cur.banks.length > 0 ? 'bank:' + cur.banks[0].id : '';
+
+    cur.cards.forEach((c, idx) => {
+      const cardKey = 'card:' + c.id;
+      const planned = cur.fixed.concat(cur.invest).filter(i => !i.isPaid && i.source === cardKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+      const used = (parseFloat(c.billed) || 0) + (parseFloat(c.unbilled) || 0) + planned;
+      const currentPaySrc = c.paySource || defaultBank;
+
+      const tr = document.createElement('tr');
+      tr.id = `card-row-${idx}`;
+      tr.innerHTML = `
+        <td><input type="text" class="table-input-text" value="${c.name}" oninput="updateCardField(${idx}, 'name', this.value)"></td>
+        <td style="text-align:right;"><input type="number" class="table-input-amount" value="${c.limit}" oninput="updateCardField(${idx}, 'limit', this.value)"></td>
+        <td style="text-align:center;"><input type="number" class="table-input-small" value="${c.billDay}" min="1" max="31" oninput="updateCardField(${idx}, 'billDay', this.value)"></td>
+        <td style="text-align:center;"><input type="number" class="table-input-small" value="${c.dueDay}" min="1" max="31" oninput="updateCardField(${idx}, 'dueDay', this.value)"></td>
+        <td style="text-align:right;">
+          <input type="number" class="table-input-amount" id="card-input-billed-${idx}" value="${c.billed}" min="0" title="Statement billed amount due in this month" oninput="updateCardField(${idx}, 'billed', this.value)">
+        </td>
+        <td style="text-align:right;">
+          <input type="number" class="table-input-amount" id="card-input-unbilled-${idx}" value="${c.unbilled}" min="0" title="New spend after bill date; rolls over to next month" oninput="updateCardField(${idx}, 'unbilled', this.value)">
+        </td>
+        <td style="text-align:right;font-weight:600;" id="card-used-${idx}">${formatINR(used)}</td>
+        <td style="text-align:center;" id="card-status-${idx}">
+          <span class="badge ${c.isPaid ? 'badge-paid' : 'badge-due'}">${c.isPaid ? 'Paid' : 'Due ' + c.dueDay + 'th'}</span>
+        </td>
+        <td>
+          <select class="table-select" onchange="updateCardField(${idx}, 'paySource', this.value)" title="Choose bank account to pay this card bill">
+            ${getBankOptions(currentPaySrc)}
+          </select>
+        </td>
+        <td style="text-align:center;">
+          <input type="checkbox" style="width:16px; height:16px; cursor:pointer;" ${c.isPaid ? 'checked' : ''} onchange="toggleCardPaid(${idx}, this.checked)" title="Mark as paid from selected bank">
+        </td>
+        <td style="text-align:center;"><button class="btn-del-icon" onclick="deleteCard(${idx})">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ================= IN-PLACE FIELD UPDATERS =================
+  function updateBankField(idx, field, val) {
+    const cur = getCurrentMonthData();
+    if (field === 'name') cur.banks[idx].name = val.trim();
+    else cur.banks[idx].balance = parseFloat(val) || 0;
+    saveData();
+    updateCalculationsOnly();
+  checkIndexedDBAutoRecovery();
+  }
+
+  function updateIncomeField(idx, field, val) {
+    const cur = getCurrentMonthData();
+    if (field === 'name') cur.incomes[idx].name = val;
+    else if (field === 'day') cur.incomes[idx].day = parseInt(val) || 1;
+    else if (field === 'target') cur.incomes[idx].target = val;
+    else if (field === 'amount') cur.incomes[idx].amount = parseFloat(val) || 0;
+    else if (field === 'isReceived') cur.incomes[idx].isReceived = val;
+    saveData();
+    updateCalculationsOnly();
+  checkIndexedDBAutoRecovery();
+  }
+
+  function updateFixedField(idx, field, val) {
+    const cur = getCurrentMonthData();
+    if (field === 'name') cur.fixed[idx].name = val;
+    else if (field === 'day') cur.fixed[idx].day = parseInt(val) || 1;
+    else if (field === 'source') cur.fixed[idx].source = val;
+    else if (field === 'amount') cur.fixed[idx].amount = parseFloat(val) || 0;
+    else if (field === 'isPaid') cur.fixed[idx].isPaid = val;
+    saveData();
+    updateCalculationsOnly();
+  checkIndexedDBAutoRecovery();
+  }
+
+  function updateInvestField(idx, field, val) {
+    const cur = getCurrentMonthData();
+    if (field === 'name') cur.invest[idx].name = val;
+    else if (field === 'day') cur.invest[idx].day = parseInt(val) || 1;
+    else if (field === 'source') cur.invest[idx].source = val;
+    else if (field === 'amount') cur.invest[idx].amount = parseFloat(val) || 0;
+    else if (field === 'isPaid') cur.invest[idx].isPaid = val;
+    saveData();
+    updateCalculationsOnly();
+  checkIndexedDBAutoRecovery();
+  }
+
+  function updateCardField(idx, field, val) {
+    const cur = getCurrentMonthData();
+    if (field === 'name') cur.cards[idx].name = val;
+    else if (field === 'limit') cur.cards[idx].limit = parseFloat(val) || 0;
+    else if (field === 'billDay') cur.cards[idx].billDay = parseInt(val) || 1;
+    else if (field === 'dueDay') cur.cards[idx].dueDay = parseInt(val) || 1;
+    else if (field === 'billed') cur.cards[idx].billed = parseFloat(val) || 0;
+    else if (field === 'unbilled') cur.cards[idx].unbilled = parseFloat(val) || 0;
+    else if (field === 'paySource') cur.cards[idx].paySource = val;
+    else if (field === 'isPaid') cur.cards[idx].isPaid = val;
+
+    saveData();
+
+    const c = cur.cards[idx];
+    const cardKey = 'card:' + c.id;
+    const planned = cur.fixed.concat(cur.invest).filter(i => !i.isPaid && i.source === cardKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+    const used = (parseFloat(c.billed) || 0) + (parseFloat(c.unbilled) || 0) + planned;
+    
+    const usedEl = document.getElementById(`card-used-${idx}`);
+    if (usedEl) usedEl.innerText = formatINR(used);
+
+    updateCalculationsOnly();
+  }
+
+  // ADD / DELETE ACTIONS handled via In-App Modals
+
+  // ================= CALCULATIONS ENGINE =================
+  function updateCalculationsOnly() {
+    const cur = getCurrentMonthData();
+
+    const horizonSelect = document.getElementById('forecastHorizon');
+    const horizon = horizonSelect ? horizonSelect.value : 'all_month';
+    const todayDate = new Date().getDate();
+
+    const totalBank = cur.banks.reduce((s, b) => s + (parseFloat(b.balance) || 0), 0);
+    const bankExpenses = cur.expenses.filter(e => e.source.startsWith('bank:')).reduce((s, e) => s + e.amount, 0);
+    const totalSpent = cur.expenses.reduce((s, e) => s + e.amount, 0);
+
+    const totalIncome = cur.incomes.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+    const pendingInc = cur.incomes.filter(inc => !inc.isReceived).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+
+    const pendingFBank = cur.fixed.filter(f => !f.isPaid && f.source.startsWith('bank:')).reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+    const pendingIBank = cur.invest.filter(i => !i.isPaid && i.source.startsWith('bank:')).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+    const totalPlannedBank = pendingFBank + pendingIBank;
+
+    const pendingFTotal = cur.fixed.filter(f => !f.isPaid).reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+    const pendingITotal = cur.invest.filter(i => !i.isPaid).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+
+    // CC Due in Window: ONLY billed statement due this month reduces cash!
+    let ccDueInWindow = 0;
+    let totalLiab = 0;
+    let cardsDueCount = 0;
+
+    cur.cards.forEach((c, idx) => {
+      const cardKey = 'card:' + c.id;
+      const plannedOnCard = cur.fixed.concat(cur.invest).filter(i => !i.isPaid && i.source === cardKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+      const bAmt = parseFloat(c.billed) || 0;
+      const uAmt = parseFloat(c.unbilled) || 0;
+
+      totalLiab += (bAmt + uAmt + plannedOnCard);
+
+      let isDueInHorizon = true;
+      if (horizon === 'due_15') isDueInHorizon = c.dueDay <= 15;
+      else if (horizon === 'due_25') isDueInHorizon = c.dueDay <= 25;
+      else if (horizon === 'due_today') isDueInHorizon = c.dueDay <= todayDate;
+      else if (horizon === 'all_month') isDueInHorizon = true;
+
+      if (!c.isPaid && isDueInHorizon && bAmt > 0) {
+        ccDueInWindow += bAmt;
+        cardsDueCount++;
+      }
+
+      const statusEl = document.getElementById(`card-status-${idx}`);
+      if (statusEl) {
+        if (c.isPaid) {
+          statusEl.innerHTML = `<span class="badge badge-paid">Paid</span>`;
+        } else if (bAmt > 0) {
+          if (isDueInHorizon) {
+            statusEl.innerHTML = `<span class="badge badge-due">Due ${c.dueDay}th (In Window)</span>`;
+          } else {
+            statusEl.innerHTML = `<span class="badge badge-outside">Due ${c.dueDay}th (Outside Window)</span>`;
+          }
+        } else if (uAmt > 0) {
+          statusEl.innerHTML = `<span class="badge badge-overflow">Next Month Due (${c.dueDay}th)</span>`;
+        } else {
+          statusEl.innerHTML = `<span class="badge badge-outside">Due ${c.dueDay}th</span>`;
+        }
+      }
+    });
+
+    const netRemaining = totalBank + pendingInc - totalPlannedBank - ccDueInWindow;
+
+    safeSetText('displayTotalBank', formatINR(totalBank));
+    safeSetText('displayTotalIncome', formatINR(totalIncome));
+    safeSetText('displayIncomeHelper', `${formatINR(pendingInc)} pending`);
+
+    safeSetText('fixedPendingTotal', formatINR(pendingFTotal));
+    safeSetText('investPendingTotal', formatINR(pendingITotal));
+    safeSetText('displayPlannedBankPending', formatINR(totalPlannedBank));
+
+    safeSetText('displayTotalSpent', formatINR(totalSpent));
+    safeSetText('displayExpenseCount', `${cur.expenses.length} logged`);
+    
+    safeSetText('displayCCDue', formatINR(ccDueInWindow));
+    safeSetText('displayTotalLiability', formatINR(totalLiab));
+
+    let windowDesc = 'All payments due this month';
+    if (horizon === 'due_15') windowDesc = `Bills due on/before 15th (${cardsDueCount} card(s))`;
+    else if (horizon === 'due_25') windowDesc = `Bills due on/before 25th (${cardsDueCount} card(s))`;
+    else if (horizon === 'due_today') windowDesc = `Bills due on/before today (${cardsDueCount} card(s))`;
+    else windowDesc = `Billed statements due this month (${cardsDueCount} card(s))`;
+    safeSetText('displayDueDescription', windowDesc);
+
+    const netEl = document.getElementById('displayNetRemaining');
+    if (netEl) {
+      netEl.innerText = formatINR(netRemaining);
+      netEl.className = netRemaining < 0 ? 'card-value danger' : 'card-value success';
+    }
+
+    cur.banks.forEach((b, idx) => {
+      const bankKey = 'bank:' + b.id;
+      const pF = cur.fixed.filter(f => !f.isPaid && f.source === bankKey).reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+      const pI = cur.invest.filter(i => !i.isPaid && i.source === bankKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+      const pInc = cur.incomes.filter(i => !i.isReceived && i.target === bankKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+      const sp = cur.expenses.filter(e => e.source === bankKey).reduce((s, e) => s + e.amount, 0);
+      const proj = (parseFloat(b.balance) || 0) + pInc - pF - pI;
+
+      safeSetHtml(`bank-subtext-${idx}`, `
+        <span>Pending Debits: ${formatINR(pF + pI)}</span>
+        <span style="font-weight:600;color:${proj < 0 ? 'var(--danger)' : 'var(--success)'}">Proj: ${formatINR(proj)}</span>
+      `);
+    });
+
+    const totalFixedAll = cur.fixed.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+    const totalInvestAll = cur.invest.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+    const totalCCBilledAll = cur.cards.reduce((s, c) => s + (parseFloat(c.billed) || 0), 0);
+    renderAllVisualTrackersSuite(totalBank, totalIncome, totalFixedAll, totalInvestAll, totalLiab, totalCCBilledAll, totalSpent, netRemaining);
+  }
+
+  // ================= 9 VISUAL TRACKERS (MOBILE-OPTIMIZED MULTI-ROW) =================
+  
+  // ================= 9 VISUAL TRACKERS (CENTERED, MOBILE-OPTIMIZED & ROBUST) =================
+  let selectedCalDay = new Date().getDate();
+
+  function selectCalendarDay(day) {
+    selectedCalDay = day;
+    const cur = getCurrentMonthData();
+    const dayIncs = cur.incomes.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
+    const dayFix = cur.fixed.filter(f => f.day === day && (parseFloat(f.amount) || 0) > 0);
+    const dayInv = cur.invest.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
+    const dayCard = cur.cards.filter(c => c.dueDay === day && (parseFloat(c.billed) || 0) > 0);
+
+    const titleEl = document.getElementById('calDetailDate');
+    const textEl = document.getElementById('calDetailText');
+
+    if (titleEl) titleEl.innerText = `October ${day} Events`;
+
+    const totalOut = dayFix.reduce((s, f) => s + f.amount, 0) + dayInv.reduce((s, i) => s + i.amount, 0) + dayCard.reduce((s, c) => s + c.billed, 0);
+    const totalIn = dayIncs.reduce((s, i) => s + i.amount, 0);
+
+    let parts = [];
+    if (dayIncs.length > 0) parts.push(`<strong>Income:</strong> ${dayIncs.map(i => `${i.name} (+${formatINR(i.amount)})`).join(', ')}`);
+    if (dayFix.length > 0) parts.push(`<strong>Bills:</strong> ${dayFix.map(f => `${f.name} (-${formatINR(f.amount)})`).join(', ')}`);
+    if (dayInv.length > 0) parts.push(`<strong>Investments:</strong> ${dayInv.map(inv => `${inv.name} (★${formatINR(inv.amount)})`).join(', ')}`);
+    if (dayCard.length > 0) parts.push(`<strong>Card Statements:</strong> ${dayCard.map(c => `${c.name} (💳${formatINR(c.billed)})`).join(', ')}`);
+
+    if (parts.length === 0) {
+      if (textEl) textEl.innerHTML = `<span style="color:var(--text-muted);">No scheduled bills, card due dates, or incomes on Day ${day}.</span>`;
+    } else {
+      let sumText = '';
+      if (totalIn > 0) sumText += `<span style="color:#0f766e; font-weight:700;">+${formatINR(totalIn)} In</span> `;
+      if (totalOut > 0) sumText += `<span style="color:#b91c1c; font-weight:700;">-${formatINR(totalOut)} Out</span>`;
+      if (textEl) textEl.innerHTML = `<div>${parts.join(' | ')} &nbsp;(${sumText})</div>`;
+    }
+
+    // Update active highlight
+    const allCells = document.querySelectorAll('.cal-day-cell');
+    allCells.forEach(cell => {
+      if (cell.getAttribute('data-day') == day) {
+        cell.classList.add('selected');
+      } else {
+        cell.classList.remove('selected');
+      }
+    });
+  }
+
+  function renderAllVisualTrackersSuite(bankCash, income, totalFixed, totalInvest, totalLiab, ccDueThisMonth, livingSpent, netRemaining) {
+    const cur = getCurrentMonthData();
+    const monthKeys = Object.keys(appState.months);
+    const pad = 40; 
+    const wTotal = 500; 
+    const hChart = 135; 
+    const yBase = 175;
+    const availWidth = wTotal - pad * 2;
+    const nMonths = Math.max(1, monthKeys.length);
+    const grpWidth = availWidth / nMonths;
+
+    // 1. MOBILE-FRIENDLY MULTI-ROW WATERFALL ALLOCATION (SHOWS TOTAL MONTHLY BUDGET ALLOCATION)
+    const baseInflow = bankCash + income;
+    const displayInflow = Math.max(0, baseInflow);
+    safeSetText('allocTotalLabel', `Inflow Base: ${formatINR(displayInflow)}`);
+
+    const pF = displayInflow > 0 ? Math.min(100, (totalFixed / displayInflow) * 100) : 0;
+    const pI = displayInflow > 0 ? Math.min(100, (totalInvest / displayInflow) * 100) : 0;
+    const pCC = displayInflow > 0 ? Math.min(100, (ccDueThisMonth / displayInflow) * 100) : 0;
+    const pL = displayInflow > 0 ? Math.min(100, (livingSpent / displayInflow) * 100) : 0;
+    const pS = displayInflow > 0 ? Math.max(0, (netRemaining / displayInflow) * 100) : 0;
+
+    const allocRows = [
+      { name: 'Fixed Recurring Bills', amt: totalFixed, pct: pF, col: '#3b82f6', icon: '🔵' },
+      { name: 'Wealth Investments', amt: totalInvest, pct: pI, col: '#7c3aed', icon: '🟣' },
+      { name: 'Credit Cards Due (This Month)', amt: ccDueThisMonth, pct: pCC, col: '#f59e0b', icon: '🟠' },
+      { name: 'Daily Living Expenses Spent', amt: livingSpent, pct: pL, col: '#ef4444', icon: '🔴' },
+      { name: 'Free Month-End Surplus', amt: Math.max(0, netRemaining), pct: pS, col: '#10b981', icon: '🟢' }
+    ];
+
+    let allocHtml = '';
+    allocRows.forEach(item => {
+      allocHtml += `
+        <div class="alloc-row-item">
+          <div class="alloc-row-header">
+            <span>${item.icon} ${item.name}</span>
+            <span style="font-weight:700; color:${item.col};">${formatINR(item.amt)} (${item.pct.toFixed(1)}%)</span>
+          </div>
+          <div class="alloc-row-bar-bg">
+            <div class="alloc-row-bar-fill" style="width:${Math.max(item.pct, item.amt > 0 ? 3 : 0)}%; background:${item.col};"></div>
+          </div>
+        </div>
+      `;
+    });
+    safeSetHtml('allocRowsContainer', allocHtml);
+
+    // 2. MOBILE-FRIENDLY MULTI-ROW 7-COLUMN CALENDAR WITH COLORED EVENT PILLS
+    const calGrid = document.getElementById('calendarGridMulti');
+    if (calGrid) {
+      calGrid.innerHTML = '';
+      const today = new Date().getDate();
+      const firstDayOffset = 4; // Oct 1, 2026 is a Thursday
+
+      for (let p = 0; p < firstDayOffset; p++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'cal-day-cell empty';
+        calGrid.appendChild(emptyCell);
+      }
+
+      for (let day = 1; day <= 31; day++) {
+        const dayIncs = cur.incomes.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
+        const dayFix = cur.fixed.filter(f => f.day === day && (parseFloat(f.amount) || 0) > 0);
+        const dayInv = cur.invest.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
+        const dayCard = cur.cards.filter(c => c.dueDay === day && (parseFloat(c.billed) || 0) > 0);
+
+        let pillsHtml = '';
+        dayIncs.forEach(i => {
+          const kAmt = i.amount >= 1000 ? `+₹${Math.round(i.amount/1000)}k` : `+₹${i.amount}`;
+          pillsHtml += `<div class="cal-pill pill-inc" title="${i.name}">${kAmt}</div>`;
+        });
+        dayFix.forEach(f => {
+          const kAmt = f.amount >= 1000 ? `-₹${Math.round(f.amount/1000)}k` : `-₹${f.amount}`;
+          pillsHtml += `<div class="cal-pill pill-fix" title="${f.name}">${kAmt}</div>`;
+        });
+        dayInv.forEach(inv => {
+          const kAmt = inv.amount >= 1000 ? `★₹${Math.round(inv.amount/1000)}k` : `★₹${inv.amount}`;
+          pillsHtml += `<div class="cal-pill pill-inv" title="${inv.name}">${kAmt}</div>`;
+        });
+        dayCard.forEach(c => {
+          const kAmt = c.billed >= 1000 ? `💳₹${Math.round(c.billed/1000)}k` : `💳₹${c.billed}`;
+          pillsHtml += `<div class="cal-pill pill-card" title="${c.name}">${kAmt}</div>`;
+        });
+
+        const dayDiv = document.createElement('div');
+        let cellClass = 'cal-day-cell';
+        if (day === today) cellClass += ' today';
+        if (day === selectedCalDay) cellClass += ' selected';
+        dayDiv.className = cellClass;
+        dayDiv.setAttribute('data-day', day);
+        dayDiv.onclick = () => selectCalendarDay(day);
+
+        dayDiv.innerHTML = `
+          <div class="cal-day-num">${day}</div>
+          <div class="cal-events-wrap">${pillsHtml}</div>
+        `;
+        calGrid.appendChild(dayDiv);
+      }
+
+      // Initialize calendar day detail card
+      selectCalendarDay(selectedCalDay);
+    }
+
+    // 3. MOM OVERALL CASHFLOW BAR CHART (PERFECTLY CENTERED WITH GRIDLINES)
+    const cfSvg = document.getElementById('cashflowMoMChart');
+    if (cfSvg) {
+      let maxCf = 50000;
+      const cfData = monthKeys.map(mKey => {
+        const m = appState.months[mKey];
+        const bCash = Math.max(0, m.banks.reduce((s, b) => s + (parseFloat(b.balance) || 0), 0));
+        const inc = Math.max(0, m.incomes.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0));
+        const cDebt = Math.max(0, m.cards.reduce((s, c) => s + (parseFloat(c.billed) || 0) + (parseFloat(c.unbilled) || 0), 0));
+        const out = Math.max(0, m.fixed.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0) + m.invest.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) + m.expenses.reduce((s, e) => s + e.amount, 0));
+        maxCf = Math.max(maxCf, bCash, inc, cDebt, out);
+        return { mKey, bCash, inc, cDebt, out };
+      });
+
+      // Y-axis gridlines
+      let cfStr = `
+        <line x1="${pad}" y1="40" x2="${wTotal - pad}" y2="40" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="${pad}" y1="105" x2="${wTotal - pad}" y2="105" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="${pad}" y1="${yBase}" x2="${wTotal - pad}" y2="${yBase}" stroke="#cbd5e1" stroke-width="1.5"/>
+        <text x="${pad - 4}" y="44" font-size="9" fill="#94a3b8" text-anchor="end">${formatINR(maxCf)}</text>
+        <text x="${pad - 4}" y="109" font-size="9" fill="#94a3b8" text-anchor="end">${formatINR(maxCf / 2)}</text>
+        <text x="${pad - 4}" y="${yBase + 3}" font-size="9" fill="#94a3b8" text-anchor="end">₹0</text>
+      `;
+
+      const bW = Math.max(14, Math.min(22, grpWidth / 7));
+      const bGap = 4;
+      const grpTotalW = 4 * bW + 3 * bGap;
+
+      cfData.forEach((item, idx) => {
+        const centerX = pad + (idx + 0.5) * grpWidth;
+        const startX = centerX - grpTotalW / 2;
+
+        const hB = Math.max(item.bCash > 0 ? 3 : 0, (item.bCash / maxCf) * hChart);
+        const hInc = Math.max(item.inc > 0 ? 3 : 0, (item.inc / maxCf) * hChart);
+        const hCC = Math.max(item.cDebt > 0 ? 3 : 0, (item.cDebt / maxCf) * hChart);
+        const hOut = Math.max(item.out > 0 ? 3 : 0, (item.out / maxCf) * hChart);
+
+        cfStr += `
+          <g>
+            <rect x="${startX}" y="${yBase - hB}" width="${bW}" height="${hB}" fill="#2563eb" rx="2"><title>Cash: ${formatINR(item.bCash)}</title></rect>
+            <rect x="${startX + (bW + bGap)}" y="${yBase - hInc}" width="${bW}" height="${hInc}" fill="#0d9488" rx="2"><title>Income: ${formatINR(item.inc)}</title></rect>
+            <rect x="${startX + (bW + bGap) * 2}" y="${yBase - hCC}" width="${bW}" height="${hCC}" fill="#d97706" rx="2"><title>CC Debt: ${formatINR(item.cDebt)}</title></rect>
+            <rect x="${startX + (bW + bGap) * 3}" y="${yBase - hOut}" width="${bW}" height="${hOut}" fill="#dc2626" rx="2"><title>Outflows: ${formatINR(item.out)}</title></rect>
+            <text x="${centerX}" y="195" font-size="11" font-weight="700" text-anchor="middle" fill="#334155">${item.mKey}</text>
+          </g>
+        `;
+      });
+      cfSvg.innerHTML = cfStr;
+    }
+
+    // 4. CREDIT CARD UTILIZATION HEALTH GAUGES
+    const utilC = document.getElementById('utilizationContainer');
+    if (utilC) {
+      utilC.innerHTML = '';
+      if (cur.cards.length === 0) {
+        utilC.innerHTML = '<div class="empty-state">No credit cards added.</div>';
+      } else {
+        cur.cards.forEach(card => {
+          const cardKey = 'card:' + card.id;
+          const planned = cur.fixed.concat(cur.invest).filter(i => !i.isPaid && i.source === cardKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+          const used = Math.max(0, (parseFloat(card.billed) || 0) + (parseFloat(card.unbilled) || 0) + planned);
+          const lim = parseFloat(card.limit) || 0;
+          const pct = lim > 0 ? Math.min(100, Math.round((used / lim) * 100)) : 0;
+          let col = pct >= 50 ? '#ef4444' : (pct >= 30 ? '#f59e0b' : '#10b981');
+          const div = document.createElement('div'); 
+          div.className = 'util-item';
+          div.innerHTML = `
+            <div class="util-header">
+              <span><strong>${card.name}</strong> (${formatINR(used)} / ${lim > 0 ? formatINR(lim) : 'No limit set'})</span>
+              <span style="color:${col}; font-weight:700;">${lim > 0 ? pct + '%' : '-'}</span>
+            </div>
+            <div class="util-bar-bg">
+              <div class="util-bar-fill" style="width:${lim > 0 ? Math.max(pct, used > 0 ? 2 : 0) : 0}%; background:${col};"></div>
+            </div>
+          `;
+          utilC.appendChild(div);
+        });
+      }
+    }
+
+    // 5. MOM CATEGORY EXPENSES BAR CHART (CENTERED & LEGIBLE)
+    const catSvg = document.getElementById('categoryMoMChart');
+    if (catSvg) {
+      const categories = ['Fuel', 'Home', 'Personal', 'Food', 'Adhoc'];
+      const catColors = { Fuel: '#f97316', Home: '#3b82f6', Personal: '#8b5cf6', Food: '#10b981', Adhoc: '#ec4899' };
+      let maxCatVal = 10000;
+
+      const catDataMoM = monthKeys.map(mKey => {
+        const m = appState.months[mKey];
+        const sums = { Fuel: 0, Home: 0, Personal: 0, Food: 0, Adhoc: 0 };
+        if (m && m.expenses) {
+          m.expenses.forEach(e => { if (sums[e.category] !== undefined) sums[e.category] += e.amount; });
+        }
+        Object.values(sums).forEach(v => maxCatVal = Math.max(maxCatVal, v));
+        return { mKey, sums };
+      });
+
+      let catSvgStr = `
+        <line x1="${pad}" y1="40" x2="${wTotal - pad}" y2="40" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="${pad}" y1="105" x2="${wTotal - pad}" y2="105" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="${pad}" y1="${yBase}" x2="${wTotal - pad}" y2="${yBase}" stroke="#cbd5e1" stroke-width="1.5"/>
+        <text x="${pad - 4}" y="44" font-size="9" fill="#94a3b8" text-anchor="end">${formatINR(maxCatVal)}</text>
+        <text x="${pad - 4}" y="109" font-size="9" fill="#94a3b8" text-anchor="end">${formatINR(maxCatVal / 2)}</text>
+        <text x="${pad - 4}" y="${yBase + 3}" font-size="9" fill="#94a3b8" text-anchor="end">₹0</text>
+      `;
+
+      const bW = Math.max(12, Math.min(18, grpWidth / 8));
+      const bGap = 4;
+      const grpTotalW = 5 * bW + 4 * bGap;
+
+      catDataMoM.forEach((item, mIdx) => {
+        const centerX = pad + (mIdx + 0.5) * grpWidth;
+        const startX = centerX - grpTotalW / 2;
+
+        categories.forEach((cat, cIdx) => {
+          const val = item.sums[cat] || 0;
+          const barH = Math.max(val > 0 ? 3 : 0, (val / maxCatVal) * hChart);
+          const xPos = startX + cIdx * (bW + bGap);
+          catSvgStr += `<rect x="${xPos}" y="${yBase - barH}" width="${bW}" height="${barH}" fill="${catColors[cat]}" rx="2"><title>${cat}: ${formatINR(val)}</title></rect>`;
+        });
+        catSvgStr += `<text x="${centerX}" y="195" font-size="11" font-weight="700" text-anchor="middle" fill="#334155">${item.mKey}</text>`;
+      });
+      catSvg.innerHTML = catSvgStr;
+    }
+
+    // 6. ACTIVE MONTH CATEGORY SHARE BREAKDOWN
+    const catRowsEl = document.getElementById('categoryBreakdownRows');
+    if (catRowsEl) {
+      const categories = ['Fuel', 'Home', 'Personal', 'Food', 'Adhoc'];
+      const catColors = { Fuel: '#f97316', Home: '#3b82f6', Personal: '#8b5cf6', Food: '#10b981', Adhoc: '#ec4899' };
+      const activeCatSums = { Fuel: 0, Home: 0, Personal: 0, Food: 0, Adhoc: 0 };
+      if (cur.expenses) {
+        cur.expenses.forEach(e => { if (activeCatSums[e.category] !== undefined) activeCatSums[e.category] += e.amount; });
+      }
+      const totalCatSpent = Object.values(activeCatSums).reduce((a, b) => a + b, 0);
+      safeSetText('catTotalSpentLabel', `Total: ${formatINR(totalCatSpent)}`);
+
+      if (totalCatSpent === 0) {
+        catRowsEl.innerHTML = '<div class="empty-state" style="padding:15px;">No daily expenses logged yet. Record expenses in Section 5 to view category breakdown.</div>';
+      } else {
+        let rowsHtml = '';
+        categories.forEach(cat => {
+          const amt = activeCatSums[cat];
+          const pct = ((amt / totalCatSpent) * 100).toFixed(1);
+          rowsHtml += `
+            <div class="alloc-row-item">
+              <div class="alloc-row-header">
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${catColors[cat]};margin-right:4px;"></span> ${cat}</span>
+                <span style="font-weight:700;">${formatINR(amt)} (${pct}%)</span>
+              </div>
+              <div class="alloc-row-bar-bg">
+                <div class="alloc-row-bar-fill" style="width:${pct}%; background:${catColors[cat]};"></div>
+              </div>
+            </div>
+          `;
+        });
+        catRowsEl.innerHTML = rowsHtml;
+      }
+    }
+
+    // 7. MOM WEALTH INVESTED (CENTERED BAR & TOTAL AMOUNT DISPLAY)
+    const invMoMSvg = document.getElementById('investMoMChart');
+    if (invMoMSvg) {
+      let maxInv = 25000;
+      const invMoMData = monthKeys.map(mKey => {
+        const m = appState.months[mKey];
+        const sum = m && m.invest ? m.invest.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) : 0;
+        maxInv = Math.max(maxInv, sum);
+        return { mKey, sum };
+      });
+
+      let invMoMStr = `
+        <line x1="${pad}" y1="40" x2="${wTotal - pad}" y2="40" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="${pad}" y1="105" x2="${wTotal - pad}" y2="105" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="${pad}" y1="${yBase}" x2="${wTotal - pad}" y2="${yBase}" stroke="#cbd5e1" stroke-width="1.5"/>
+        <text x="${pad - 4}" y="44" font-size="9" fill="#94a3b8" text-anchor="end">${formatINR(maxInv)}</text>
+        <text x="${pad - 4}" y="109" font-size="9" fill="#94a3b8" text-anchor="end">${formatINR(maxInv / 2)}</text>
+        <text x="${pad - 4}" y="${yBase + 3}" font-size="9" fill="#94a3b8" text-anchor="end">₹0</text>
+      `;
+
+      const invBarW = Math.max(28, Math.min(50, grpWidth / 4));
+
+      invMoMData.forEach((item, idx) => {
+        const centerX = pad + (idx + 0.5) * grpWidth;
+        const bH = Math.max(item.sum > 0 ? 4 : 0, (item.sum / maxInv) * hChart);
+        const startX = centerX - invBarW / 2;
+
+        invMoMStr += `
+          <g>
+            <rect x="${startX}" y="${yBase - bH}" width="${invBarW}" height="${bH}" fill="#7c3aed" rx="3"><title>Invested: ${formatINR(item.sum)}</title></rect>
+            ${item.sum > 0 ? `<text x="${centerX}" y="${yBase - bH - 6}" font-size="10" font-weight="700" text-anchor="middle" fill="#6d28d9">${formatINR(item.sum)}</text>` : ''}
+            <text x="${centerX}" y="195" font-size="11" font-weight="700" text-anchor="middle" fill="#334155">${item.mKey}</text>
+          </g>
+        `;
+      });
+      invMoMSvg.innerHTML = invMoMStr;
+    }
+
+    // 8. ACTIVE MONTH INVESTMENT PORTFOLIO BREAKDOWN
+    const invRowsEl = document.getElementById('investPortfolioRows');
+    if (invRowsEl) {
+      const totalActiveInv = cur.invest ? cur.invest.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) : 0;
+      safeSetText('investTotalActiveLabel', `Committed: ${formatINR(totalActiveInv)}`);
+
+      if (!cur.invest || cur.invest.length === 0 || totalActiveInv === 0) {
+        invRowsEl.innerHTML = '<div class="empty-state" style="padding:15px;">Enter planned investments in Section 3B to view portfolio breakdown.</div>';
+      } else {
+        let iRowsHtml = '';
+        const invColors = ['#7c3aed', '#6366f1', '#3b82f6', '#0284c7', '#0d9488', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+        cur.invest.forEach((item, idx) => {
+          const amt = parseFloat(item.amount) || 0;
+          if (amt > 0) {
+            const pct = ((amt / totalActiveInv) * 100).toFixed(1);
+            const col = invColors[idx % invColors.length];
+            iRowsHtml += `
+              <div class="alloc-row-item">
+                <div class="alloc-row-header">
+                  <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:4px;"></span> ${item.name}</span>
+                  <span style="font-weight:700;">${formatINR(amt)} (${pct}%)</span>
+                </div>
+                <div class="alloc-row-bar-bg">
+                  <div class="alloc-row-bar-fill" style="width:${pct}%; background:${col};"></div>
+                </div>
+              </div>
+            `;
+          }
+        });
+        invRowsEl.innerHTML = iRowsHtml;
+      }
+    }
+  }
+
+
+  // DAILY EXPENSES
+  document.getElementById('expenseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const cur = getCurrentMonthData();
+    const source = document.getElementById('paymentSource').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    if (!amount || amount <= 0) return;
+
+    if (source.startsWith('card:')) {
+      const c = cur.cards.find(c => 'card:' + c.id === source);
+      if (c) {
+        c.unbilled = (parseFloat(c.unbilled) || 0) + amount;
+        renderCardsStructure();
+        showToast(`Charged ${formatINR(amount)} to ${c.name}.`);
+      }
+    } else if (source.startsWith('bank:')) {
+      const b = cur.banks.find(b => 'bank:' + b.id === source);
+      if (b) {
+        b.balance = Math.max(0, (parseFloat(b.balance) || 0) - amount);
+        renderBanksStructure();
+        showToast(`Deducted ${formatINR(amount)} from ${b.name}. Balance updated.`);
+      }
+    }
+
+    cur.expenses.unshift({
+      date: document.getElementById('date').value,
+      category: document.getElementById('category').value,
+      source,
+      description: document.getElementById('description').value,
+      amount
+    });
+
+    document.getElementById('description').value = '';
+    document.getElementById('amount').value = '';
+    saveData();
+    renderExpenseHistoryTable();
+    updateCalculationsOnly();
+    checkIndexedDBAutoRecovery();
+  });
+
+  function renderExpenseHistoryTable() {
+    const cur = getCurrentMonthData();
+    const tbody = document.getElementById('expenseTableBody');
+    safeSetText('historyBadge', `${cur.expenses.length} items`);
+    tbody.innerHTML = '';
+    if (cur.expenses.length === 0) {
+      document.getElementById('emptyState').style.display = 'block';
+    } else {
+      document.getElementById('emptyState').style.display = 'none';
+      cur.expenses.forEach((e, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${e.date}</td>
+          <td><span class="badge">${e.category}</span></td>
+          <td><span class="badge ${e.source.startsWith('card:') ? 'badge-card' : ''}">${e.source.startsWith('card:') ? 'Card' : 'Bank'}</span></td>
+          <td>${e.description}</td>
+          <td style="text-align:right;font-weight:600;">${formatINR(e.amount)}</td>
+          <td style="text-align:right;"><button class="btn-del-icon" onclick="deleteExp(${idx})">&times;</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  }
+
+  function deleteExp(idx) {
+    const cur = getCurrentMonthData();
+    const e = cur.expenses[idx];
+    if (e.source.startsWith('card:')) {
+      const c = cur.cards.find(c => 'card:' + c.id === e.source);
+      if (c && c.unbilled >= e.amount) {
+        c.unbilled -= e.amount;
+        renderCardsStructure();
+      }
+    } else if (e.source.startsWith('bank:')) {
+      const b = cur.banks.find(b => 'bank:' + b.id === e.source);
+      if (b) {
+        b.balance = (parseFloat(b.balance) || 0) + e.amount;
+        renderBanksStructure();
+        showToast(`Restored ${formatINR(e.amount)} to ${b.name}.`);
+      }
+    }
+    cur.expenses.splice(idx, 1);
+    saveData();
+    renderExpenseHistoryTable();
+    updateCalculationsOnly();
+    checkIndexedDBAutoRecovery();
+  }
+
+  function renderExpenseOptions() {
+    const cur = getCurrentMonthData();
+    const bg = document.getElementById('expenseBankOptGroup');
+    const cg = document.getElementById('expenseCardOptGroup');
+    if (bg) bg.innerHTML = cur.banks.map(b => `<option value="bank:${b.id}">${b.name}</option>`).join('');
+    if (cg) cg.innerHTML = cur.cards.map(c => `<option value="card:${c.id}">${c.name} Card</option>`).join('');
+  }
+
+  function renderAllTables() {
+    renderExpenseOptions();
+    renderBanksStructure();
+    renderIncomesStructure();
+    renderFixedStructure();
+    renderInvestStructure();
+    renderCardsStructure();
+    renderExpenseHistoryTable();
+  }
+
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+  renderMonthSelector();
+  renderAllTables();
+  updateCalculationsOnly();
+  checkIndexedDBAutoRecovery();
+
+  // ================= PROGRESSIVE WEB APP (PWA) ENGINE =================
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('pwaInstallBtn');
+    if (btn) {
+      btn.style.display = 'inline-flex';
+      btn.classList.add('pulse');
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    const btn = document.getElementById('pwaInstallBtn');
+    if (btn) btn.style.display = 'none';
+    showToast('Finance Tracker installed successfully on your device!');
+  });
+
+  function triggerPwaInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choiceResult => {
+        if (choiceResult.outcome === 'accepted') {
+          showToast('Installing Finance Tracker...');
+        }
+        deferredPrompt = null;
+      });
+    } else {
+      showPwaInstallModal();
+    }
+  }
+
+  function showPwaInstallModal() {
+    document.getElementById('appModalTitle').innerText = '📲 Install as Phone App';
+    document.getElementById('appModalBody').innerHTML = `
+      <div style="font-size:13px; color:#334155; line-height:1.6;">
+        <p style="margin-bottom:12px;">You can run this tracker full-screen just like a native Play Store app:</p>
+        <div style="background:#f1f5f9; border-radius:8px; padding:12px; margin-bottom:12px; border-left:4px solid var(--primary);">
+          <strong>📱 Android / Vivo / Chrome:</strong><br>
+          1. Tap the <strong>three dots (⋮)</strong> at the top-right corner of Chrome.<br>
+          2. Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.<br>
+          3. Tap <strong>Install / Add</strong>.
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; border-left:4px solid var(--purple);">
+          <strong>🍏 iPhone / Safari:</strong><br>
+          1. Tap the <strong>Share</strong> button (box with upward arrow).<br>
+          2. Scroll down and tap <strong>"Add to Home Screen"</strong>.
+        </div>
+      </div>
+    `;
+    const btn = document.getElementById('appModalSubmitBtn');
+    btn.innerText = 'Got It';
+    btn.onclick = closeAppModal;
+    document.getElementById('appModalOverlay').classList.add('active');
+  }
+
+  // Register PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('PWA ServiceWorker registered with scope:', reg.scope))
+        .catch(err => console.log('ServiceWorker registration skipped:', err));
+    });
+  }
+
+</script>
+</body>
+</html>

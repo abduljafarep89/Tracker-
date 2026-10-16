@@ -1,0 +1,27 @@
+{
+  "name": "Personal Finance & Forecast Tracker",
+  "short_name": "Finance Tracker",
+  "description": "Multi-month personal cashflow, daily expenses, and credit card forecast tracker",
+  "start_url": "./expense_tracker_live.html",
+  "id": "personal-finance-tracker-pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity", "utilities"]
+}
