@@ -347,6 +347,42 @@
     </div>
   </div>
 
+    <!-- ================= WALLET APP BENCHMARK: CASHFLOW OUTLOOK & SOLVENCY HUB ================= -->
+  <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--primary); padding: 14px 16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:20px;">🛡️</span>
+        <div>
+          <strong style="font-size:14px; color:#1e293b;">Wallet App Financial Outlook & Solvency Hub</strong>
+          <div style="font-size:11px; color:#64748b;">Real-time safe daily spend limit, debt timing & net liquid position</div>
+        </div>
+      </div>
+      <div id="outlookHealthBadge"><span class="badge badge-paid">Optimal Cashflow</span></div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+        <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Safe Daily Spend Allowance</div>
+        <div style="font-size:18px; font-weight:700; color:#16a34a; margin-top:2px;" id="visSafeDailySpend">₹0/day</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;" id="visDaysRemainingHelper">Pacing for month-end</div>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+        <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Total CC Liability (All Debt)</div>
+        <div style="font-size:18px; font-weight:700; color:#d97706; margin-top:2px;" id="visTotalLiabilityCard">₹0</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;" id="visLiabilityDueSplit">₹0 due now • ₹0 next month</div>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+        <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Net Liquid Solvency (After Debt)</div>
+        <div style="font-size:18px; font-weight:700; color:#2563eb; margin-top:2px;" id="visNetSolvency">₹0</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;" id="visCoverageRatio">Cash covers all debt</div>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+        <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Smart Float Recommendation</div>
+        <div style="font-size:16px; font-weight:700; color:#7c3aed; margin-top:2px;" id="visSmartSwipeCard">Best Card</div>
+        <div style="font-size:11px; color:#64748b; margin-top:2px;" id="visSmartSwipeDays">Longest interest-free float</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= VISUAL TRACKERS MASTER SUITE (ALL MULTI-ROW ON MOBILE) ================= -->
   
   <!-- VISUAL ROW 1: MOBILE MULTI-ROW WATERFALL & MULTI-ROW CALENDAR GRID -->
@@ -406,11 +442,11 @@
       </div>
     </div>
 
-    <!-- Visual 4: Credit Card Utilization Health Gauges -->
+    <!-- Visual 4: Credit Card Debt & Liability Hub (Wallet App Benchmark) -->
     <div class="vis-box">
       <div class="vis-title">
-        <span>💳 Credit Card Utilization Health Gauges</span>
-        <span style="font-size: 11px; color: var(--text-muted);">Target: &lt; 30% per card</span>
+        <span>💳 Credit Card Debt & Liability Hub</span>
+        <span id="ccHubHealthBadge" style="font-size: 11px; color: var(--text-muted);">Target: &lt; 30% utilization</span>
       </div>
       <div id="utilizationContainer"></div>
     </div>
@@ -1843,8 +1879,8 @@ function getBankOptions(selected) {
 
     const totalFixedAll = cur.fixed.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
     const totalInvestAll = cur.invest.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-    const totalCCBilledAll = cur.cards.reduce((s, c) => s + (parseFloat(c.billed) || 0), 0);
-    renderAllVisualTrackersSuite(totalBank, totalIncome, totalFixedAll, totalInvestAll, totalLiab, totalCCBilledAll, totalSpent, netRemaining);
+    // PASS ccDueInWindow so visual accurately matches the CC Due in Window metric card!
+    renderAllVisualTrackersSuite(totalBank, totalIncome, totalFixedAll, totalInvestAll, totalLiab, ccDueInWindow, totalSpent, netRemaining);
   }
 
   // ================= 9 VISUAL TRACKERS (MOBILE-OPTIMIZED MULTI-ROW) =================
@@ -1904,24 +1940,65 @@ function getBankOptions(selected) {
     const availWidth = wTotal - pad * 2;
     const nMonths = Math.max(1, monthKeys.length);
     const grpWidth = availWidth / nMonths;
+    const todayDate = new Date().getDate();
+
+    // ================= WALLET APP OUTLOOK CALCULATIONS =================
+    const daysInMonth = 31;
+    const daysRemaining = Math.max(1, daysInMonth - todayDate + 1);
+    const safeDailySpend = Math.max(0, Math.round(netRemaining / daysRemaining));
+    const ccDeferredNext = Math.max(0, totalLiab - ccDueThisMonth);
+    const netSolvency = bankCash - totalLiab;
+    const coverageRatio = totalLiab > 0 ? (bankCash / totalLiab).toFixed(1) : '∞';
+
+    // Best float card (Wallet App Float Maximizer)
+    let bestFloatCard = 'None';
+    let maxFloatDays = -1;
+    cur.cards.forEach(c => {
+      const bDay = parseInt(c.billDay) || 15;
+      const floatDays = (todayDate >= bDay) ? (30 - todayDate + bDay + 20) : (bDay - todayDate + 20);
+      if (floatDays > maxFloatDays) {
+        maxFloatDays = floatDays;
+        bestFloatCard = c.name;
+      }
+    });
+
+    safeSetText('visSafeDailySpend', `${formatINR(safeDailySpend)}/day`);
+    safeSetText('visDaysRemainingHelper', `Pacing across ${daysRemaining} days left in month`);
+    safeSetText('visTotalLiabilityCard', formatINR(totalLiab));
+    safeSetText('visLiabilityDueSplit', `${formatINR(ccDueThisMonth)} due now • ${formatINR(ccDeferredNext)} next mo`);
+    safeSetText('visNetSolvency', `${netSolvency >= 0 ? '+' : ''}${formatINR(netSolvency)}`);
+    safeSetText('visCoverageRatio', `${coverageRatio}x cash coverage of total card debt`);
+    safeSetText('visSmartSwipeCard', `${bestFloatCard} Card`);
+    safeSetText('visSmartSwipeDays', `${maxFloatDays} interest-free days if used today`);
+
+    const outlookBadge = document.getElementById('outlookHealthBadge');
+    if (outlookBadge) {
+      if (netRemaining >= 25000 && netSolvency >= 0) {
+        outlookBadge.innerHTML = '<span class="badge badge-paid">Optimal Cashflow & Surplus</span>';
+      } else if (netRemaining >= 0) {
+        outlookBadge.innerHTML = '<span class="badge badge-due">Tight Pacing Buffer</span>';
+      } else {
+        outlookBadge.innerHTML = '<span class="badge" style="background:#fee2e2; color:#dc2626;">Projected Deficit</span>';
+      }
+    }
 
     // 1. MOBILE-FRIENDLY MULTI-ROW WATERFALL ALLOCATION (SHOWS TOTAL MONTHLY BUDGET ALLOCATION)
     const baseInflow = bankCash + income;
-    const displayInflow = Math.max(0, baseInflow);
+    const displayInflow = Math.max(1, baseInflow);
     safeSetText('allocTotalLabel', `Inflow Base: ${formatINR(displayInflow)}`);
 
-    const pF = displayInflow > 0 ? Math.min(100, (totalFixed / displayInflow) * 100) : 0;
-    const pI = displayInflow > 0 ? Math.min(100, (totalInvest / displayInflow) * 100) : 0;
-    const pCC = displayInflow > 0 ? Math.min(100, (ccDueThisMonth / displayInflow) * 100) : 0;
-    const pL = displayInflow > 0 ? Math.min(100, (livingSpent / displayInflow) * 100) : 0;
-    const pS = displayInflow > 0 ? Math.max(0, (netRemaining / displayInflow) * 100) : 0;
+    const pF = Math.min(100, (totalFixed / displayInflow) * 100);
+    const pI = Math.min(100, (totalInvest / displayInflow) * 100);
+    const pCC = Math.min(100, (ccDueThisMonth / displayInflow) * 100);
+    const pL = Math.min(100, (livingSpent / displayInflow) * 100);
+    const pS = Math.max(0, 100 - (pF + pI + pCC + pL));
 
     const allocRows = [
       { name: 'Fixed Recurring Bills', amt: totalFixed, pct: pF, col: '#3b82f6', icon: '🔵' },
       { name: 'Wealth Investments', amt: totalInvest, pct: pI, col: '#7c3aed', icon: '🟣' },
       { name: 'Credit Cards Due (This Month)', amt: ccDueThisMonth, pct: pCC, col: '#f59e0b', icon: '🟠' },
       { name: 'Daily Living Expenses Spent', amt: livingSpent, pct: pL, col: '#ef4444', icon: '🔴' },
-      { name: 'Free Month-End Surplus', amt: Math.max(0, netRemaining), pct: pS, col: '#10b981', icon: '🟢' }
+      { name: 'Free Month-End Cash Surplus', amt: Math.max(0, displayInflow - (totalFixed + totalInvest + ccDueThisMonth + livingSpent)), pct: pS, col: '#10b981', icon: '🟢' }
     ];
 
     let allocHtml = '';
@@ -1938,6 +2015,15 @@ function getBankOptions(selected) {
         </div>
       `;
     });
+
+    // Add Total Liability breakdown helper row inside the Waterfall box
+    allocHtml += `
+      <div style="font-size:11px; color:#475569; background:#f1f5f9; border:1px dashed #cbd5e1; padding:8px 10px; border-radius:6px; margin-top:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+        <span>💳 <strong>Total Credit Card Liability:</strong> <span style="color:#d97706; font-weight:700;">${formatINR(totalLiab)}</span></span>
+        <span>Due this mo: <strong>${formatINR(ccDueThisMonth)}</strong> • Rolls to next mo: <strong>${formatINR(ccDeferredNext)}</strong></span>
+      </div>
+    `;
+
     safeSetHtml('allocRowsContainer', allocHtml);
 
     // 2. MOBILE-FRIENDLY MULTI-ROW 7-COLUMN CALENDAR WITH COLORED EVENT PILLS
@@ -2046,13 +2132,48 @@ function getBankOptions(selected) {
       cfSvg.innerHTML = cfStr;
     }
 
-    // 4. CREDIT CARD UTILIZATION HEALTH GAUGES
+    // 4. CREDIT CARD LIABILITY & UTILIZATION HUB (WALLET APP BENCHMARK)
     const utilC = document.getElementById('utilizationContainer');
     if (utilC) {
       utilC.innerHTML = '';
       if (cur.cards.length === 0) {
         utilC.innerHTML = '<div class="empty-state">No credit cards added.</div>';
       } else {
+        const totalCreditLimit = cur.cards.reduce((s, c) => s + (parseFloat(c.limit) || 0), 0);
+        const overallPct = totalCreditLimit > 0 ? Math.min(100, Math.round((totalLiab / totalCreditLimit) * 100)) : 0;
+        const availCredit = Math.max(0, totalCreditLimit - totalLiab);
+
+        const badgeCol = overallPct >= 50 ? '#ef4444' : (overallPct >= 30 ? '#f59e0b' : '#16a34a');
+        const badgeText = overallPct >= 50 ? 'High (>50%)' : (overallPct >= 30 ? 'Moderate (30-50%)' : 'Optimal (<30%)');
+        safeSetHtml('ccHubHealthBadge', `<span class="badge" style="background:${badgeCol}15; color:${badgeCol}; border:1px solid ${badgeCol}35;">Portfolio: ${overallPct}% (${badgeText})</span>`);
+
+        // Wallet App Debt & Timing Split Overview Card
+        let summaryHtml = `
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:4px;">
+              <span style="font-size:12px; font-weight:700; color:#1e293b;">Total Card Liability: <span style="color:#d97706; font-size:14px;">${formatINR(totalLiab)}</span></span>
+              <span style="font-size:11px; color:#64748b;">Available Credit: <strong style="color:#16a34a;">${formatINR(availCredit)}</strong> / ${formatINR(totalCreditLimit)}</span>
+            </div>
+            
+            <!-- Segmented Debt Timing Bar -->
+            <div style="width:100%; height:10px; background:#e2e8f0; border-radius:5px; overflow:hidden; display:flex; margin-bottom:8px;">
+              <div style="width:${totalCreditLimit > 0 ? (ccDueThisMonth / totalCreditLimit) * 100 : 0}%; background:#f59e0b;" title="Due This Month: ${formatINR(ccDueThisMonth)}"></div>
+              <div style="width:${totalCreditLimit > 0 ? (ccDeferredNext / totalCreditLimit) * 100 : 0}%; background:#6366f1;" title="Next Month Cycle: ${formatINR(ccDeferredNext)}"></div>
+              <div style="flex:1; background:#10b98125;" title="Available: ${formatINR(availCredit)}"></div>
+            </div>
+
+            <!-- Timing Breakdown Legend -->
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11px;">
+              <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; margin-right:3px;"></span> Due This Month: <strong>${formatINR(ccDueThisMonth)}</strong></span>
+              <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#6366f1; margin-right:3px;"></span> Next Month: <strong>${formatINR(ccDeferredNext)}</strong></span>
+              <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#16a34a; margin-right:3px;"></span> Free Credit: <strong>${formatINR(availCredit)}</strong></span>
+            </div>
+          </div>
+        `;
+
+        utilC.innerHTML = summaryHtml;
+
+        // Individual Card Gauges with Live Cycle Timing Pill
         cur.cards.forEach(card => {
           const cardKey = 'card:' + card.id;
           const planned = cur.fixed.concat(cur.invest).filter(i => !i.isPaid && i.source === cardKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
@@ -2060,11 +2181,18 @@ function getBankOptions(selected) {
           const lim = parseFloat(card.limit) || 0;
           const pct = lim > 0 ? Math.min(100, Math.round((used / lim) * 100)) : 0;
           let col = pct >= 50 ? '#ef4444' : (pct >= 30 ? '#f59e0b' : '#10b981');
+
+          const period = getEffectiveDuePeriod(card);
+          const isNext = (period === 'next_month');
+          const timingBadge = card.isPaid 
+            ? '<span class="badge badge-paid">Paid</span>'
+            : (isNext ? `<span class="badge badge-overflow">Due ${card.dueDay}th Next Mo</span>` : `<span class="badge badge-due">Due ${card.dueDay}th This Mo</span>`);
+
           const div = document.createElement('div'); 
           div.className = 'util-item';
           div.innerHTML = `
             <div class="util-header">
-              <span><strong>${card.name}</strong> (${formatINR(used)} / ${lim > 0 ? formatINR(lim) : 'No limit set'})</span>
+              <span><strong>${card.name}</strong> (${formatINR(used)} / ${lim > 0 ? formatINR(lim) : 'No limit'}) &nbsp;${timingBadge}</span>
               <span style="color:${col}; font-weight:700;">${lim > 0 ? pct + '%' : '-'}</span>
             </div>
             <div class="util-bar-bg">
