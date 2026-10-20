@@ -583,10 +583,10 @@
             <th style="text-align: right;">Limit</th>
             <th style="text-align: center;">Bill Day</th>
             <th style="text-align: center;">Due Day</th>
-            <th style="text-align: right;">Billed Statement (Due This Month)</th>
-            <th style="text-align: right;">Unbilled Spend (Rolls to Next Month)</th>
+            <th style="text-align: right;">Billed Statement (₹)</th>
+            <th style="text-align: right;">Unbilled Spend (Rolls Over)</th>
             <th style="text-align: right;">Total Used</th>
-            <th style="text-align: center;">Billing Cycle / Status</th>
+            <th style="text-align: center;">Payment Due / Status</th>
             <th>Pay From Bank</th>
             <th style="text-align: center;">Paid?</th>
             <th></th>
@@ -983,6 +983,14 @@
         <label style="font-weight:600; font-size:12px; color:#475569;">Payment Due Day of Month (e.g., 5)</label>
         <input type="number" id="modalInputCardDueDay" min="1" max="31" value="5" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
       </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:600; font-size:12px; color:#475569;">Payment Due Cycle (Default)</label>
+        <select id="modalInputCardDuePeriod" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">
+          <option value="auto">Auto-detect (Based on Bill & Due Day)</option>
+          <option value="this_month">Due This Month</option>
+          <option value="next_month">Due Next Month</option>
+        </select>
+      </div>
       <div class="form-group">
         <label style="font-weight:600; font-size:12px; color:#475569;">Default Bank to Pay From</label>
         <select id="modalInputCardPaySource" style="width:100%; padding:8px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box; background:#fff;">${bankOpts}</select>
@@ -996,9 +1004,13 @@
       const billDay = parseInt(document.getElementById('modalInputCardBillDay').value) || 15;
       const dueDay = parseInt(document.getElementById('modalInputCardDueDay').value) || 5;
       const paySource = document.getElementById('modalInputCardPaySource').value;
+      let duePeriod = document.getElementById('modalInputCardDuePeriod').value;
+      if (duePeriod === 'auto') {
+        duePeriod = (dueDay <= billDay) ? 'next_month' : 'this_month';
+      }
       if (!name) return showToast('Please enter a card name', false);
       const id = 'cc_' + Date.now();
-      getCurrentMonthData().cards.push({ id, name, limit, billDay, dueDay, billed: 0, unbilled: 0, paySource, isPaid: false });
+      getCurrentMonthData().cards.push({ id, name, limit, billDay, dueDay, billed: 0, unbilled: 0, duePeriod, paySource, isPaid: false });
       saveData();
       renderAllTables();
       updateCalculationsOnly();
@@ -1049,7 +1061,11 @@
         incomes: cur.incomes.map(i => ({ ...i, isReceived: false })),
         fixed: cur.fixed.map(f => ({ ...f, isPaid: false })),
         invest: cur.invest.map(i => ({ ...i, isPaid: false })),
-        cards: cur.cards.map(c => ({ ...c, billed: parseFloat(c.unbilled) || 0, unbilled: 0, isPaid: false })),
+        cards: cur.cards.map(c => {
+        const period = getEffectiveDuePeriod(c);
+        const rolledBilled = (period === 'next_month' ? (parseFloat(c.billed) || 0) : 0) + (parseFloat(c.unbilled) || 0);
+        return { ...c, billed: rolledBilled, unbilled: 0, duePeriod: 'this_month', isPaid: false };
+      }),
         expenses: []
       };
       if (carry === 'template') {
@@ -1119,11 +1135,11 @@
           { name: 'Bajaj Child', day: 15, amount: 0, source: 'bank:hdfc', isPaid: false }
         ],
         cards: [
-          { id: 'cc_hdfc', name: 'HDFC', limit: 150000, billDay: 12, dueDay: 1, billed: 0, unbilled: 0, isPaid: false },
-          { id: 'cc_sbielite', name: 'SBI Elite', limit: 183000, billDay: 7, dueDay: 27, billed: 0, unbilled: 0, isPaid: false },
-          { id: 'cc_icicicorel', name: 'ICICI Corel', limit: 250000, billDay: 25, dueDay: 15, billed: 0, unbilled: 0, isPaid: false },
-          { id: 'cc_iciciamazon', name: 'ICICI Amazon', limit: 260000, billDay: 3, dueDay: 23, billed: 0, unbilled: 0, isPaid: false },
-          { id: 'cc_sbibpcl', name: 'SBI BPCL', limit: 90000, billDay: 18, dueDay: 8, billed: 0, unbilled: 0, isPaid: false }
+          { id: 'cc_hdfc', name: 'HDFC', limit: 150000, billDay: 12, dueDay: 1, billed: 0, unbilled: 0, duePeriod: 'next_month', isPaid: false },
+          { id: 'cc_sbielite', name: 'SBI Elite', limit: 183000, billDay: 7, dueDay: 27, billed: 0, unbilled: 0, duePeriod: 'this_month', isPaid: false },
+          { id: 'cc_icicicorel', name: 'ICICI Corel', limit: 250000, billDay: 25, dueDay: 15, billed: 0, unbilled: 0, duePeriod: 'next_month', isPaid: false },
+          { id: 'cc_iciciamazon', name: 'ICICI Amazon', limit: 260000, billDay: 3, dueDay: 23, billed: 0, unbilled: 0, duePeriod: 'this_month', isPaid: false },
+          { id: 'cc_sbibpcl', name: 'SBI BPCL', limit: 90000, billDay: 18, dueDay: 8, billed: 0, unbilled: 0, duePeriod: 'next_month', isPaid: false }
         ],
         expenses: []
       }
@@ -1177,6 +1193,19 @@
   }
 
   function formatINR(val) { return '₹' + Number(val).toLocaleString('en-IN'); }
+
+  function getEffectiveDuePeriod(c) {
+    if (c.duePeriod === 'this_month' || c.duePeriod === 'next_month') {
+      return c.duePeriod;
+    }
+    const todayDate = new Date().getDate();
+    if (c.dueDay <= c.billDay) {
+      if (todayDate >= c.billDay || todayDate > c.dueDay) {
+        return 'next_month';
+      }
+    }
+    return 'this_month';
+  }
 
   function getCurrentMonthData() {
     if (!appState.months[appState.activeMonth]) {
@@ -1586,6 +1615,7 @@ function getBankOptions(selected) {
       const planned = cur.fixed.concat(cur.invest).filter(i => !i.isPaid && i.source === cardKey).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
       const used = (parseFloat(c.billed) || 0) + (parseFloat(c.unbilled) || 0) + planned;
       const currentPaySrc = c.paySource || defaultBank;
+      const effectivePeriod = getEffectiveDuePeriod(c);
 
       const tr = document.createElement('tr');
       tr.id = `card-row-${idx}`;
@@ -1595,14 +1625,18 @@ function getBankOptions(selected) {
         <td style="text-align:center;"><input type="number" class="table-input-small" value="${c.billDay}" min="1" max="31" oninput="updateCardField(${idx}, 'billDay', this.value)"></td>
         <td style="text-align:center;"><input type="number" class="table-input-small" value="${c.dueDay}" min="1" max="31" oninput="updateCardField(${idx}, 'dueDay', this.value)"></td>
         <td style="text-align:right;">
-          <input type="number" class="table-input-amount" id="card-input-billed-${idx}" value="${c.billed}" min="0" title="Statement billed amount due in this month" oninput="updateCardField(${idx}, 'billed', this.value)">
+          <input type="number" class="table-input-amount" id="card-input-billed-${idx}" value="${c.billed}" min="0" title="Statement billed amount" oninput="updateCardField(${idx}, 'billed', this.value)">
         </td>
         <td style="text-align:right;">
           <input type="number" class="table-input-amount" id="card-input-unbilled-${idx}" value="${c.unbilled}" min="0" title="New spend after bill date; rolls over to next month" oninput="updateCardField(${idx}, 'unbilled', this.value)">
         </td>
         <td style="text-align:right;font-weight:600;" id="card-used-${idx}">${formatINR(used)}</td>
-        <td style="text-align:center;" id="card-status-${idx}">
-          <span class="badge ${c.isPaid ? 'badge-paid' : 'badge-due'}">${c.isPaid ? 'Paid' : 'Due ' + c.dueDay + 'th'}</span>
+        <td style="text-align:center;">
+          <select class="table-select" style="font-weight:600; font-size:11px; padding:3px 4px; margin-bottom:3px; background:#fff;" onchange="updateCardField(${idx}, 'duePeriod', this.value)" title="Choose whether payment is due this month or next month">
+            <option value="this_month" ${effectivePeriod === 'this_month' ? 'selected' : ''}>Due This Month</option>
+            <option value="next_month" ${effectivePeriod === 'next_month' ? 'selected' : ''}>Due Next Month</option>
+          </select>
+          <div id="card-status-${idx}"></div>
         </td>
         <td>
           <select class="table-select" onchange="updateCardField(${idx}, 'paySource', this.value)" title="Choose bank account to pay this card bill">
@@ -1672,6 +1706,7 @@ function getBankOptions(selected) {
     else if (field === 'dueDay') cur.cards[idx].dueDay = parseInt(val) || 1;
     else if (field === 'billed') cur.cards[idx].billed = parseFloat(val) || 0;
     else if (field === 'unbilled') cur.cards[idx].unbilled = parseFloat(val) || 0;
+    else if (field === 'duePeriod') cur.cards[idx].duePeriod = val;
     else if (field === 'paySource') cur.cards[idx].paySource = val;
     else if (field === 'isPaid') cur.cards[idx].isPaid = val;
 
@@ -1725,11 +1760,18 @@ function getBankOptions(selected) {
 
       totalLiab += (bAmt + uAmt + plannedOnCard);
 
+      const duePeriod = getEffectiveDuePeriod(c);
+      const isDueNextMonth = (duePeriod === 'next_month');
+
       let isDueInHorizon = true;
-      if (horizon === 'due_15') isDueInHorizon = c.dueDay <= 15;
-      else if (horizon === 'due_25') isDueInHorizon = c.dueDay <= 25;
-      else if (horizon === 'due_today') isDueInHorizon = c.dueDay <= todayDate;
-      else if (horizon === 'all_month') isDueInHorizon = true;
+      if (isDueNextMonth) {
+        isDueInHorizon = false;
+      } else {
+        if (horizon === 'due_15') isDueInHorizon = c.dueDay <= 15;
+        else if (horizon === 'due_25') isDueInHorizon = c.dueDay <= 25;
+        else if (horizon === 'due_today') isDueInHorizon = c.dueDay <= todayDate;
+        else if (horizon === 'all_month') isDueInHorizon = true;
+      }
 
       if (!c.isPaid && isDueInHorizon && bAmt > 0) {
         ccDueInWindow += bAmt;
@@ -1740,6 +1782,8 @@ function getBankOptions(selected) {
       if (statusEl) {
         if (c.isPaid) {
           statusEl.innerHTML = `<span class="badge badge-paid">Paid</span>`;
+        } else if (isDueNextMonth && bAmt > 0) {
+          statusEl.innerHTML = `<span class="badge badge-overflow">Next Month Due (${c.dueDay}th)</span>`;
         } else if (bAmt > 0) {
           if (isDueInHorizon) {
             statusEl.innerHTML = `<span class="badge badge-due">Due ${c.dueDay}th (In Window)</span>`;
@@ -1814,7 +1858,7 @@ function getBankOptions(selected) {
     const dayIncs = cur.incomes.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
     const dayFix = cur.fixed.filter(f => f.day === day && (parseFloat(f.amount) || 0) > 0);
     const dayInv = cur.invest.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
-    const dayCard = cur.cards.filter(c => c.dueDay === day && (parseFloat(c.billed) || 0) > 0);
+    const dayCard = cur.cards.filter(c => getEffectiveDuePeriod(c) === 'this_month' && c.dueDay === day && (parseFloat(c.billed) || 0) > 0);
 
     const titleEl = document.getElementById('calDetailDate');
     const textEl = document.getElementById('calDetailText');
@@ -1913,7 +1957,7 @@ function getBankOptions(selected) {
         const dayIncs = cur.incomes.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
         const dayFix = cur.fixed.filter(f => f.day === day && (parseFloat(f.amount) || 0) > 0);
         const dayInv = cur.invest.filter(i => i.day === day && (parseFloat(i.amount) || 0) > 0);
-        const dayCard = cur.cards.filter(c => c.dueDay === day && (parseFloat(c.billed) || 0) > 0);
+        const dayCard = cur.cards.filter(c => getEffectiveDuePeriod(c) === 'this_month' && c.dueDay === day && (parseFloat(c.billed) || 0) > 0);
 
         let pillsHtml = '';
         dayIncs.forEach(i => {
