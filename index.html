@@ -266,6 +266,236 @@
     .util-bar-bg { width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; }
     .util-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
 
+
+    /* ================= PHASE 1: MOBILE BOTTOM TABS & QUICK-ADD STYLES ================= */
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+      animation: tabFadeIn 0.2s ease-in-out;
+    }
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* DESKTOP TOP NAV TABS */
+    .desktop-nav-bar {
+      display: none;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      overflow-x: auto;
+    }
+    @media (min-width: 769px) {
+      .desktop-nav-bar {
+        display: flex;
+      }
+      .bottom-nav-bar {
+        display: none !important;
+      }
+    }
+    .d-nav-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .d-nav-item:hover {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+    .d-nav-item.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+    }
+
+    /* MOBILE BOTTOM NAV BAR */
+    .bottom-nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+      padding: 0 4px;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 2px;
+      cursor: pointer;
+      transition: color 0.15s, transform 0.1s;
+      min-height: 52px;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      position: relative;
+    }
+    .nav-item:active {
+      transform: scale(0.92);
+    }
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 0 0 3px 3px;
+    }
+    .nav-icon {
+      font-size: 20px;
+      line-height: 1.1;
+    }
+    .nav-label {
+      font-size: 10px;
+      letter-spacing: -0.2px;
+      margin-top: 2px;
+    }
+
+    /* FLOATING ACTION BUTTON (FAB) FOR QUICK ADD */
+    .fab-quick-add {
+      position: fixed;
+      bottom: 74px;
+      right: 18px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 400;
+      cursor: pointer;
+      z-index: 999;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .fab-quick-add:active {
+      transform: scale(0.9);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    }
+    @media (min-width: 769px) {
+      .fab-quick-add {
+        bottom: 24px;
+        right: 24px;
+      }
+    }
+
+    /* BOTTOM SHEET MODAL STYLES (MOBILE SLIDE UP) */
+    .modal-bottom-sheet {
+      width: 100%;
+      max-width: 460px;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 22px 20px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
+      transform: scale(0.96);
+      transition: transform 0.25s ease;
+    }
+    @media (max-width: 768px) {
+      body {
+        padding-bottom: 74px !important;
+      }
+      .modal-overlay.bottom-sheet-mode {
+        align-items: flex-end !important;
+        padding: 0 !important;
+      }
+      .modal-overlay.bottom-sheet-mode .modal-bottom-sheet {
+        max-width: 100% !important;
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        border-top-left-radius: 20px !important;
+        border-top-right-radius: 20px !important;
+        padding: 20px 18px 28px 18px !important;
+        transform: translateY(100%) !important;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      .modal-overlay.bottom-sheet-mode.active .modal-bottom-sheet {
+        transform: translateY(0) !important;
+      }
+    }
+
+    /* CATEGORY PILLS SELECTOR */
+    .category-pills-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cat-pill-btn {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 7px 13px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+    .cat-pill-btn.active {
+      background: #2563eb;
+      border-color: #1d4ed8;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+    }
+
+    /* RECENT EXPENSES MINI LEDGER */
+    .recent-exp-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+    }
+    .recent-exp-item:last-child {
+      border-bottom: none;
+    }
+
 </style>
 </head>
 <body>
@@ -296,7 +526,18 @@
     </div>
   </header>
 
-  <!-- FORECAST SCHEDULE CUTOFF BAR -->
+  <!-- DESKTOP TOP NAV TABS -->
+  <nav class="desktop-nav-bar" id="desktopNavBar">
+    <button class="d-nav-item active" data-tab="overview" onclick="switchTab('overview')">📊 Overview</button>
+    <button class="d-nav-item" data-tab="cards" onclick="switchTab('cards')">💳 Cards & Debt</button>
+    <button class="d-nav-item" data-tab="budget" onclick="switchTab('budget')">📋 Bills & Plan</button>
+    <button class="d-nav-item" data-tab="expenses" onclick="switchTab('expenses')">🛍️ Daily Expenses</button>
+    <button class="d-nav-item" data-tab="invest" onclick="switchTab('invest')">📈 Invest & Analytics</button>
+  </nav>
+
+  <!-- ================= TAB 1: OVERVIEW (FOCUSED 5 WIDGETS) ================= -->
+  <div class="tab-pane active" id="tab-overview">
+    <!-- FORECAST SCHEDULE CUTOFF BAR -->
   <div class="forecast-window-bar">
     <div class="forecast-window-label">
       <span style="font-size: 16px;">🎯</span>
@@ -312,8 +553,9 @@
       <option value="due_today">Due on or before Today</option>
     </select>
   </div>
-
-  <!-- Summary Metric Cards -->
+    
+    <!-- Widget 1: 6 Metric Cards -->
+    <!-- Summary Metric Cards -->
   <div class="metrics-grid">
     <div class="card">
       <div class="card-title">Starting Bank Cash</div>
@@ -347,6 +589,7 @@
     </div>
   </div>
 
+    <!-- Widget 2: Wallet App Solvency Hub -->
     <!-- ================= WALLET APP BENCHMARK: CASHFLOW OUTLOOK & SOLVENCY HUB ================= -->
   <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--primary); padding: 14px 16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -384,8 +627,9 @@
   </div>
 
   <!-- ================= VISUAL TRACKERS MASTER SUITE (ALL MULTI-ROW ON MOBILE) ================= -->
-  
-  <!-- VISUAL ROW 1: MOBILE MULTI-ROW WATERFALL & MULTI-ROW CALENDAR GRID -->
+
+    <!-- Widget 3 & 4: Waterfall Breakdown & 7-Column Calendar Grid -->
+    <!-- VISUAL ROW 1: MOBILE MULTI-ROW WATERFALL & MULTI-ROW CALENDAR GRID -->
   <div class="visual-row-2col">
     <!-- Visual 1: Multi-Row Monthly Cash Allocation Waterfall -->
     <div class="vis-box">
@@ -425,24 +669,26 @@
     </div>
   </div>
 
-  <!-- VISUAL ROW 2: OVERALL MOM CASHFLOW & CREDIT CARD UTILIZATION -->
-  <div class="visual-row-2col">
-    <!-- Visual 3: Month-on-Month Comparison Bar Chart -->
-    <div class="vis-box">
-      <div class="vis-title">
-        <span>📊 Month-on-Month Overall Cashflow & Liability</span>
-        <span style="font-size: 11px; color: var(--text-muted);">Balance Trajectory</span>
+    <!-- Widget 5: Recent Daily Expenses Mini-Ledger -->
+    <div class="card" style="margin-top: 14px;">
+      <div class="section-header">
+        <h2>🛍️ Recent Daily Expenses</h2>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn-add" onclick="openQuickAddExpenseModal()">+ Quick Add</button>
+          <button class="btn-secondary" onclick="switchTab('expenses')">View All Ledger &rarr;</button>
+        </div>
       </div>
-      <svg id="cashflowMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
-      <div style="display: flex; justify-content: center; gap: 12px; margin-top: 6px; font-size: 11px;">
-        <span style="color: #2563eb;">■ Bank Cash</span>
-        <span style="color: #0d9488;">■ Income</span>
-        <span style="color: #d97706;">■ CC Liability</span>
-        <span style="color: #dc2626;">■ Outflows</span>
+      <div id="recentExpensesList" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff;">
+        <!-- Rendered by JS -->
       </div>
     </div>
+  </div>
 
-    <!-- Visual 4: Credit Card Debt & Liability Hub (Wallet App Benchmark) -->
+  <!-- ================= TAB 2: CARDS & DEBT (DEBT & ACCOUNTS HUB) ================= -->
+  <div class="tab-pane" id="tab-cards">
+    <!-- Visual 4: Credit Card Debt & Liability Hub -->
+    <div style="margin-bottom: 14px;">
+      <!-- Visual 4: Credit Card Debt & Liability Hub (Wallet App Benchmark) -->
     <div class="vis-box">
       <div class="vis-title">
         <span>💳 Credit Card Debt & Liability Hub</span>
@@ -450,63 +696,54 @@
       </div>
       <div id="utilizationContainer"></div>
     </div>
-  </div>
+    </div>
 
-  <!-- VISUAL ROW 3: CATEGORY EXPENSE TRENDS (MOM & CURRENT SHARE) -->
-  <div class="visual-row-2col">
-    <!-- Visual 5: Month-on-Month Expense Tracking by Category -->
-    <div class="vis-box">
-      <div class="vis-title">
-        <span>🏷️ Month-on-Month Expenses by Category</span>
-        <span style="font-size: 11px; color: var(--text-muted);">Fuel • Home • Personal • Food • Adhoc</span>
-      </div>
-      <svg id="categoryMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
-      <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
-        <span style="color: #f97316;">■ Fuel</span>
-        <span style="color: #3b82f6;">■ Home</span>
-        <span style="color: #8b5cf6;">■ Personal</span>
-        <span style="color: #10b981;">■ Food</span>
-        <span style="color: #ec4899;">■ Adhoc</span>
+    <!-- Section 4: Credit Cards Table -->
+    <!-- SECTION 4: Credit Cards -->
+  <div class="card">
+    <div class="section-header">
+      <h2>4. Credit Cards</h2>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span style="font-size: 11px; color: var(--text-muted);">Total Liability (Billed + Unbilled): <strong id="displayTotalLiability">₹0</strong></span>
+        <button class="btn-add" onclick="addCardPrompt()">+ Add Card</button>
       </div>
     </div>
 
-    <!-- Visual 6: Active Month Category Share Breakdown (Multi-Row) -->
-    <div class="vis-box">
-      <div class="vis-title">
-        <span>🍕 Active Month Category Share Breakdown</span>
-        <span id="catTotalSpentLabel" style="font-size: 11px; color: var(--text-muted);"></span>
-      </div>
-      <div id="categoryBreakdownRows" style="display:flex; flex-direction:column; gap:8px;"></div>
-    </div>
-  </div>
-
-  <!-- VISUAL ROW 4: INVESTMENT TRACKER & PORTFOLIO BREAKDOWN -->
-  <div class="visual-row-2col">
-    <!-- Visual 7: Month-on-Month Total Wealth Invested -->
-    <div class="vis-box">
-      <div class="vis-title">
-        <span>📈 Month-on-Month Total Wealth Invested</span>
-        <span style="font-size: 11px; color: var(--text-muted);">RD • SIP • Kuris • KSFE • Sukanya • ULIP</span>
-      </div>
-      <svg id="investMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
-      <div style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--purple); font-weight: 600;">
-        ■ Total Monthly Capital Invested (Wealth Accumulation)
-      </div>
+    <!-- Secondary Window Selector in Section 4 -->
+    <div style="background: #f1f5f9; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+      <span style="font-size: 12px; color: #334155; font-weight: 600;">Due-Date Payment Filter:</span>
+      <select id="forecastHorizonCards" style="padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: 500;" onchange="syncAndRecalculateHorizon(this.value)">
+        <option value="all_month" selected>All Bills Due This Month (Full Month-End)</option>
+        <option value="due_15">Due on or before 15th of the month</option>
+        <option value="due_25">Due on or before 25th of the month</option>
+        <option value="due_today">Due on or before Today</option>
+      </select>
     </div>
 
-    <!-- Visual 8: Active Month Investment Portfolio Breakdown (Multi-Row) -->
-    <div class="vis-box">
-      <div class="vis-title">
-        <span>🏛️ Active Month Investment Portfolio Breakdown</span>
-        <span id="investTotalActiveLabel" style="font-size: 11px; color: var(--text-muted);"></span>
-      </div>
-      <div id="investPortfolioRows" style="display:flex; flex-direction:column; gap:6px;"></div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Card Name</th>
+            <th style="text-align: right;">Limit</th>
+            <th style="text-align: center;">Bill Day</th>
+            <th style="text-align: center;">Due Day</th>
+            <th style="text-align: right;">Billed Statement (₹)</th>
+            <th style="text-align: right;">Unbilled Spend (Rolls Over)</th>
+            <th style="text-align: right;">Total Used</th>
+            <th style="text-align: center;">Payment Due / Status</th>
+            <th>Pay From Bank</th>
+            <th style="text-align: center;">Paid?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="creditCardsBody"></tbody>
+      </table>
     </div>
   </div>
 
-  <!-- ================= FINANCIAL LEDGER SECTIONS ================= -->
-
-  <!-- SECTION 1: Bank Accounts -->
+    <!-- Section 1: Bank Accounts -->
+    <!-- SECTION 1: Bank Accounts -->
   <div class="card">
     <div class="section-header">
       <h2>1. Bank Accounts</h2>
@@ -514,8 +751,12 @@
     </div>
     <div class="accounts-grid" id="accountsContainer"></div>
   </div>
+  </div>
 
-  <!-- SECTION 2: Income -->
+  <!-- ================= TAB 3: BILLS & PLAN (INCOME, FIXED BILLS & EMIS) ================= -->
+  <div class="tab-pane" id="tab-budget">
+    <!-- Section 2: Income Planning -->
+    <!-- SECTION 2: Income -->
   <div class="card">
     <div class="section-header">
       <h2>2. Income Planning</h2>
@@ -538,7 +779,8 @@
     </div>
   </div>
 
-  <!-- SECTION 3: Planned Bills & Investments -->
+    <!-- Section 3: Planned Bills & Investments -->
+    <!-- SECTION 3: Planned Bills & Investments -->
   <div class="two-col-grid">
     <div class="card">
       <div class="section-header">
@@ -590,50 +832,71 @@
     </div>
   </div>
 
-  <!-- SECTION 4: Credit Cards -->
-  <div class="card">
-    <div class="section-header">
-      <h2>4. Credit Cards</h2>
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <span style="font-size: 11px; color: var(--text-muted);">Total Liability (Billed + Unbilled): <strong id="displayTotalLiability">₹0</strong></span>
-        <button class="btn-add" onclick="addCardPrompt()">+ Add Card</button>
+    <!-- MoM Cashflow Trajectory Chart -->
+    <div style="margin-top: 16px;">
+      <div class="vis-box">
+        <div class="vis-title">
+          <span>📊 Month-on-Month Overall Cashflow & Liability Trajectory</span>
+          <span style="font-size: 11px; color: var(--text-muted);">Balance Trend</span>
+        </div>
+        <svg id="cashflowMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="display: flex; justify-content: center; gap: 12px; margin-top: 8px; font-size: 11px;">
+          <span style="color: #2563eb;">■ Bank Cash</span>
+          <span style="color: #0d9488;">■ Income</span>
+          <span style="color: #d97706;">■ CC Liability</span>
+          <span style="color: #dc2626;">■ Outflows</span>
+        </div>
       </div>
-    </div>
-
-    <!-- Secondary Window Selector in Section 4 -->
-    <div style="background: #f1f5f9; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-      <span style="font-size: 12px; color: #334155; font-weight: 600;">Due-Date Payment Filter:</span>
-      <select id="forecastHorizonCards" style="padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: 500;" onchange="syncAndRecalculateHorizon(this.value)">
-        <option value="all_month" selected>All Bills Due This Month (Full Month-End)</option>
-        <option value="due_15">Due on or before 15th of the month</option>
-        <option value="due_25">Due on or before 25th of the month</option>
-        <option value="due_today">Due on or before Today</option>
-      </select>
-    </div>
-
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Card Name</th>
-            <th style="text-align: right;">Limit</th>
-            <th style="text-align: center;">Bill Day</th>
-            <th style="text-align: center;">Due Day</th>
-            <th style="text-align: right;">Billed Statement (₹)</th>
-            <th style="text-align: right;">Unbilled Spend (Rolls Over)</th>
-            <th style="text-align: right;">Total Used</th>
-            <th style="text-align: center;">Payment Due / Status</th>
-            <th>Pay From Bank</th>
-            <th style="text-align: center;">Paid?</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="creditCardsBody"></tbody>
-      </table>
     </div>
   </div>
 
-  <!-- SECTION 5: Daily Expenses -->
+  <!-- ================= TAB 4: DAILY LIVING EXPENSES (TRACKER & ANALYSIS) ================= -->
+  <div class="tab-pane" id="tab-expenses">
+    <!-- Quick Expense Health Banner -->
+    <div class="metrics-grid" style="margin-bottom: 14px;">
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title">Total Spent This Month</div>
+        <div class="card-value danger" id="expTabTotalSpent">₹0</div>
+        <div class="card-helper" id="expTabCountHelper">0 items recorded</div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title">Safe Daily Spend Ceiling</div>
+        <div class="card-value success" id="expTabDailySafe">₹0/day</div>
+        <div class="card-helper">Burn pacing limit</div>
+      </div>
+    </div>
+
+    <!-- Category Visuals: MoM Trends & Current Share -->
+    <!-- VISUAL ROW 3: CATEGORY EXPENSE TRENDS (MOM & CURRENT SHARE) -->
+  <div class="visual-row-2col">
+    <!-- Visual 5: Month-on-Month Expense Tracking by Category -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>🏷️ Month-on-Month Expenses by Category</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Fuel • Home • Personal • Food • Adhoc</span>
+      </div>
+      <svg id="categoryMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 6px; font-size: 11px;">
+        <span style="color: #f97316;">■ Fuel</span>
+        <span style="color: #3b82f6;">■ Home</span>
+        <span style="color: #8b5cf6;">■ Personal</span>
+        <span style="color: #10b981;">■ Food</span>
+        <span style="color: #ec4899;">■ Adhoc</span>
+      </div>
+    </div>
+
+    <!-- Visual 6: Active Month Category Share Breakdown (Multi-Row) -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>🍕 Active Month Category Share Breakdown</span>
+        <span id="catTotalSpentLabel" style="font-size: 11px; color: var(--text-muted);"></span>
+      </div>
+      <div id="categoryBreakdownRows" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+    <!-- Section 5: Daily Expenses Form & Ledger -->
+    <!-- SECTION 5: Daily Expenses -->
   <div class="content-grid">
     <div class="card">
       <h2 style="font-size: 15px; margin-bottom: 12px;">5. Record Daily Expense</h2>
@@ -672,7 +935,13 @@
     </div>
     <div class="card">
       <div class="section-header">
-        <h2>Daily Expense History</h2>
+        
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">Daily Expense History</h2>
+        <input type="text" id="expenseSearchInput" placeholder="🔍 Search description or merchant..." oninput="filterExpenses(this.value)" 
+          style="padding:4px 9px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px; width:180px; max-width:100%;">
+      </div>
+
         <span id="historyBadge" style="font-size: 11px; color: var(--text-muted);">0 items</span>
       </div>
       <div class="table-container">
@@ -693,8 +962,152 @@
       </div>
     </div>
   </div>
+  </div>
+
+  <!-- ================= TAB 5: INVEST & ANALYTICS (WEALTH ENGINE) ================= -->
+  <div class="tab-pane" id="tab-invest">
+    <!-- Visual Row 4: MoM Wealth Invested & Active Portfolio Breakdown -->
+    <!-- VISUAL ROW 4: INVESTMENT TRACKER & PORTFOLIO BREAKDOWN -->
+  <div class="visual-row-2col">
+    <!-- Visual 7: Month-on-Month Total Wealth Invested -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>📈 Month-on-Month Total Wealth Invested</span>
+        <span style="font-size: 11px; color: var(--text-muted);">RD • SIP • Kuris • KSFE • Sukanya • ULIP</span>
+      </div>
+      <svg id="investMoMChart" class="chart-svg" viewBox="0 0 500 210" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--purple); font-weight: 600;">
+        ■ Total Monthly Capital Invested (Wealth Accumulation)
+      </div>
+    </div>
+
+    <!-- Visual 8: Active Month Investment Portfolio Breakdown (Multi-Row) -->
+    <div class="vis-box">
+      <div class="vis-title">
+        <span>🏛️ Active Month Investment Portfolio Breakdown</span>
+        <span id="investTotalActiveLabel" style="font-size: 11px; color: var(--text-muted);"></span>
+      </div>
+      <div id="investPortfolioRows" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+  </div>
+
+  <!-- ================= FINANCIAL LEDGER SECTIONS ================= -->
+
+    <!-- Wealth Solvency Card -->
+    <div class="card" style="margin-top: 14px; border-left: 4px solid var(--purple);">
+      <div class="section-header">
+        <h2 style="color:var(--purple);">🏛️ Wealth Solvency & Savings Efficiency</h2>
+        <span class="badge" style="background:#ede9fe; color:#6d28d9;">Long-Term Security</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:8px;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+          <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Monthly Wealth Savings Rate</div>
+          <div style="font-size:20px; font-weight:700; color:#7c3aed; margin-top:2px;" id="visInvestSavingsRate">0%</div>
+          <div style="font-size:11px; color:#64748b; margin-top:2px;">Target: &ge; 20% of monthly income</div>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+          <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Net Liquid Surplus vs Total Debt</div>
+          <div style="font-size:20px; font-weight:700; color:#2563eb; margin-top:2px;" id="visInvestNetBuffer">₹0</div>
+          <div style="font-size:11px; color:#64748b; margin-top:2px;">Bank cash after clearing 100% CC debt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
+  <!-- FLOATING ACTION BUTTON FOR 1-TAP QUICK EXPENSE -->
+  <button class="fab-quick-add" id="fabQuickAdd" onclick="openQuickAddExpenseModal()" title="Quick Record Expense">+</button>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR -->
+  <nav class="bottom-nav-bar" id="bottomNavBar">
+    <button class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Overview</span>
+    </button>
+    <button class="nav-item" data-tab="cards" onclick="switchTab('cards')">
+      <span class="nav-icon">💳</span>
+      <span class="nav-label">Cards & Debt</span>
+    </button>
+    <button class="nav-item" data-tab="budget" onclick="switchTab('budget')">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Bills & Plan</span>
+    </button>
+    <button class="nav-item" data-tab="expenses" onclick="switchTab('expenses')">
+      <span class="nav-icon">🛍️</span>
+      <span class="nav-label">Expenses</span>
+    </button>
+    <button class="nav-item" data-tab="invest" onclick="switchTab('invest')">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Analytics</span>
+    </button>
+  </nav>
+
+  <!-- QUICK ADD EXPENSE MODAL (BOTTOM SHEET ON MOBILE) -->
+  <div class="modal-overlay bottom-sheet-mode" id="quickAddExpenseModal">
+    <div class="modal-card modal-bottom-sheet">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 class="modal-title" style="margin:0; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;">⚡</span> Quick Record Expense
+        </h3>
+        <button class="btn-del-icon" onclick="closeQuickAddExpenseModal()" style="font-size:24px; font-weight:700;" title="Close">&times;</button>
+      </div>
+      
+      <form id="quickExpenseForm" onsubmit="handleQuickExpenseSubmit(event)">
+        <!-- Amount -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px; font-weight:700; color:#475569; margin-bottom:4px; display:block;">Amount (₹)</label>
+          <div style="position:relative; width:100%;">
+            <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:24px; font-weight:700; color:#2563eb;">₹</span>
+            <input type="number" id="quickExpAmount" placeholder="0" min="1" step="any" required 
+              style="width:100%; font-size:26px; font-weight:700; color:#1e293b; padding:10px 14px 10px 38px; border:2px solid #93c5fd; border-radius:10px; background:#eff6ff; outline:none; text-align:left; box-sizing:border-box;">
+          </div>
+        </div>
+
+        <!-- Category Pills -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px; font-weight:700; color:#475569; margin-bottom:6px; display:block;">Select Category</label>
+          <div class="category-pills-row" id="quickCatPills">
+            <button type="button" class="cat-pill-btn active" data-cat="Fuel" onclick="selectQuickCategory('Fuel')">⛽ Fuel</button>
+            <button type="button" class="cat-pill-btn" data-cat="Home" onclick="selectQuickCategory('Home')">🏠 Home</button>
+            <button type="button" class="cat-pill-btn" data-cat="Personal" onclick="selectQuickCategory('Personal')">🛍️ Personal</button>
+            <button type="button" class="cat-pill-btn" data-cat="Food" onclick="selectQuickCategory('Food')">🍽️ Food</button>
+            <button type="button" class="cat-pill-btn" data-cat="Adhoc" onclick="selectQuickCategory('Adhoc')">🌸 Adhoc</button>
+          </div>
+          <input type="hidden" id="quickExpCategory" value="Fuel">
+        </div>
+
+        <!-- Payment Source -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Payment Source</label>
+          <select id="quickExpPaymentSource" required style="width:100%; padding:9px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; background:#fff;">
+            <optgroup label="Bank Accounts" id="quickExpenseBankOptGroup"></optgroup>
+            <optgroup label="Credit Cards" id="quickExpenseCardOptGroup"></optgroup>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Description / Merchant</label>
+          <input type="text" id="quickExpDescription" placeholder="e.g. Petrol, Groceries, Dinner" required 
+            style="width:100%; padding:9px 10px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+        </div>
+
+        <!-- Date -->
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">Date</label>
+          <input type="date" id="quickExpDate" required 
+            style="width:100%; padding:8px 10px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-secondary" onclick="closeQuickAddExpenseModal()" style="flex:1; padding:11px; font-size:14px; border-radius:8px;">Cancel</button>
+          <button type="submit" class="btn-primary" style="flex:2; padding:11px; font-size:14px; border-radius:8px; background:var(--primary); font-weight:700;">+ Record Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 <!-- IN-APP UNIVERSAL FORM MODAL -->
 <div class="modal-overlay" id="appModalOverlay">
@@ -1963,6 +2376,15 @@ function getBankOptions(selected) {
     });
 
     safeSetText('visSafeDailySpend', `${formatINR(safeDailySpend)}/day`);
+
+    safeSetText('expTabTotalSpent', formatINR(totalSpent));
+    safeSetText('expTabCountHelper', `${cur.expenses.length} items logged`);
+    safeSetText('expTabDailySafe', `${formatINR(safeDailySpend)}/day`);
+    const invRate = totalIncome > 0 ? ((totalInvestAll / totalIncome) * 100).toFixed(1) : 0;
+    safeSetText('visInvestSavingsRate', `${invRate}%`);
+    safeSetText('visInvestNetBuffer', formatINR(Math.max(0, totalBank - totalLiab)));
+    if (typeof renderRecentExpensesOverview === 'function') renderRecentExpensesOverview();
+
     safeSetText('visDaysRemainingHelper', `Pacing across ${daysRemaining} days left in month`);
     safeSetText('visTotalLiabilityCard', formatINR(totalLiab));
     safeSetText('visLiabilityDueSplit', `${formatINR(ccDueThisMonth)} due now • ${formatINR(ccDeferredNext)} next mo`);
@@ -2540,6 +2962,176 @@ function getBankOptions(selected) {
       window.location.reload();
     });
   }
+
+
+
+  // ================= PHASE 1: TAB NAVIGATION & QUICK-ADD JS ENGINE =================
+  function switchTab(tabId) {
+    // 1. Hide all tab panes
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    // 2. Show active tab
+    const activePane = document.getElementById('tab-' + tabId);
+    if (activePane) activePane.classList.add('active');
+
+    // 3. Update active states on bottom nav and desktop nav
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    });
+    document.querySelectorAll('.d-nav-item').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    });
+
+    // 4. Save state
+    try { sessionStorage.setItem('active_tracker_tab', tabId); } catch(e) {}
+
+    // 5. Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openQuickAddExpenseModal() {
+    const cur = getCurrentMonthData();
+    const bg = document.getElementById('quickExpenseBankOptGroup');
+    const cg = document.getElementById('quickExpenseCardOptGroup');
+    if (bg) bg.innerHTML = cur.banks.map(b => `<option value="bank:${b.id}">${b.name}</option>`).join('');
+    if (cg) cg.innerHTML = cur.cards.map(c => `<option value="card:${c.id}">${c.name} Card</option>`).join('');
+
+    const dateInp = document.getElementById('quickExpDate');
+    if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
+
+    const modal = document.getElementById('quickAddExpenseModal');
+    if (modal) modal.classList.add('active');
+
+    setTimeout(() => {
+      const amtInp = document.getElementById('quickExpAmount');
+      if (amtInp) { amtInp.value = ''; amtInp.focus(); }
+    }, 150);
+  }
+
+  function closeQuickAddExpenseModal() {
+    const modal = document.getElementById('quickAddExpenseModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function selectQuickCategory(cat) {
+    const hiddenInp = document.getElementById('quickExpCategory');
+    if (hiddenInp) hiddenInp.value = cat;
+
+    const pills = document.querySelectorAll('#quickCatPills .cat-pill-btn');
+    pills.forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-cat') === cat);
+    });
+  }
+
+  function handleQuickExpenseSubmit(e) {
+    e.preventDefault();
+    const cur = getCurrentMonthData();
+    const amount = parseFloat(document.getElementById('quickExpAmount').value);
+    if (!amount || amount <= 0) {
+      showToast('Please enter a valid amount', false);
+      return;
+    }
+    const category = document.getElementById('quickExpCategory').value;
+    const source = document.getElementById('quickExpPaymentSource').value;
+    const description = document.getElementById('quickExpDescription').value.trim();
+    const date = document.getElementById('quickExpDate').value || new Date().toISOString().split('T')[0];
+
+    if (source.startsWith('card:')) {
+      const c = cur.cards.find(c => 'card:' + c.id === source);
+      if (c) {
+        c.unbilled = (parseFloat(c.unbilled) || 0) + amount;
+        renderCardsStructure();
+        showToast(`Charged ${formatINR(amount)} to ${c.name}.`);
+      }
+    } else if (source.startsWith('bank:')) {
+      const b = cur.banks.find(b => 'bank:' + b.id === source);
+      if (b) {
+        b.balance = Math.max(0, (parseFloat(b.balance) || 0) - amount);
+        renderBanksStructure();
+        showToast(`Deducted ${formatINR(amount)} from ${b.name}. Balance updated.`);
+      }
+    }
+
+    cur.expenses.unshift({
+      date,
+      category,
+      source,
+      description,
+      amount
+    });
+
+    document.getElementById('quickExpAmount').value = '';
+    document.getElementById('quickExpDescription').value = '';
+    closeQuickAddExpenseModal();
+
+    saveData();
+    renderExpenseHistoryTable();
+    renderRecentExpensesOverview();
+    updateCalculationsOnly();
+    checkIndexedDBAutoRecovery();
+  }
+
+  function renderRecentExpensesOverview() {
+    const cur = getCurrentMonthData();
+    const listEl = document.getElementById('recentExpensesList');
+    if (!listEl) return;
+
+    if (!cur.expenses || cur.expenses.length === 0) {
+      listEl.innerHTML = '<div class="empty-state" style="padding:16px;">No daily expenses logged this month yet. Tap "+ Quick Add" to record your first spend.</div>';
+      return;
+    }
+
+    const recent = cur.expenses.slice(0, 5);
+    const catColors = { Fuel: '#f97316', Home: '#3b82f6', Personal: '#8b5cf6', Food: '#10b981', Adhoc: '#ec4899' };
+
+    let html = '';
+    recent.forEach(e => {
+      const col = catColors[e.category] || '#64748b';
+      let srcName = 'Bank';
+      if (e.source.startsWith('card:')) {
+        const c = cur.cards.find(c => 'card:' + c.id === e.source);
+        srcName = c ? c.name : 'Card';
+      } else if (e.source.startsWith('bank:')) {
+        const b = cur.banks.find(b => 'bank:' + b.id === e.source);
+        srcName = b ? b.name : 'Bank';
+      }
+
+      html += `
+        <div class="recent-exp-item">
+          <div>
+            <div style="font-weight:600; color:#1e293b;">${e.description}</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px; display:flex; align-items:center; gap:6px;">
+              <span>${e.date}</span>
+              <span>•</span>
+              <span style="color:${col}; font-weight:600;">${e.category}</span>
+              <span>•</span>
+              <span class="badge ${e.source.startsWith('card:') ? 'badge-card' : ''}" style="font-size:9.5px; padding:1px 5px;">${srcName}</span>
+            </div>
+          </div>
+          <div style="font-weight:700; color:#dc2626; font-size:14px;">${formatINR(e.amount)}</div>
+        </div>
+      `;
+    });
+    listEl.innerHTML = html;
+  }
+
+  function filterExpenses(query) {
+    const q = (query || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#expenseTableBody tr');
+    rows.forEach(row => {
+      const text = row.innerText.toLowerCase();
+      row.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+
+  // Initialize active tab immediately & on DOMContentLoaded
+  function initTabState() {
+    let savedTab = 'overview';
+    try { savedTab = sessionStorage.getItem('active_tracker_tab') || 'overview'; } catch(e) {}
+    switchTab(savedTab);
+    renderRecentExpensesOverview();
+  }
+  initTabState();
+  window.addEventListener('DOMContentLoaded', initTabState);
 
 </script>
 </body>
