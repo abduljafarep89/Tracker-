@@ -1765,13 +1765,27 @@
     const reader = new FileReader();
     reader.onload = function(evt) {
       try {
-        appState = JSON.parse(evt.target.result);
+        const parsed = JSON.parse(evt.target.result);
+        if (!parsed || (!parsed.months && !parsed.banks)) {
+          showToast('Invalid backup file structure', false);
+          return;
+        }
+        // Handle both full appState and single-month backup
+        if (parsed.months) {
+          appState = parsed;
+        } else {
+          const mKey = appState.activeMonth || 'Oct-2026';
+          appState.months[mKey] = parsed;
+        }
         saveData();
         renderMonthSelector();
         renderAllTables();
         updateCalculationsOnly();
-        showToast('Restored! Tap "📥 Save HTML with Data" once to permanently lock your numbers into the file.', true);
-      } catch (err) { showToast('Error reading file', false); }
+        showToast('✓ Restored successfully! All charts & tables updated.', true);
+      } catch (err) {
+        console.error('Import error:', err);
+        showToast('Error restoring backup: ' + (err.message || 'Invalid format'), false);
+      }
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -2377,12 +2391,12 @@ function getBankOptions(selected) {
 
     safeSetText('visSafeDailySpend', `${formatINR(safeDailySpend)}/day`);
 
-    safeSetText('expTabTotalSpent', formatINR(totalSpent));
+    safeSetText('expTabTotalSpent', formatINR(livingSpent));
     safeSetText('expTabCountHelper', `${cur.expenses.length} items logged`);
     safeSetText('expTabDailySafe', `${formatINR(safeDailySpend)}/day`);
-    const invRate = totalIncome > 0 ? ((totalInvestAll / totalIncome) * 100).toFixed(1) : 0;
+    const invRate = income > 0 ? ((totalInvest / income) * 100).toFixed(1) : 0;
     safeSetText('visInvestSavingsRate', `${invRate}%`);
-    safeSetText('visInvestNetBuffer', formatINR(Math.max(0, totalBank - totalLiab)));
+    safeSetText('visInvestNetBuffer', formatINR(Math.max(0, netSolvency)));
     if (typeof renderRecentExpensesOverview === 'function') renderRecentExpensesOverview();
 
     safeSetText('visDaysRemainingHelper', `Pacing across ${daysRemaining} days left in month`);
@@ -2984,7 +2998,10 @@ function getBankOptions(selected) {
     // 4. Save state
     try { sessionStorage.setItem('active_tracker_tab', tabId); } catch(e) {}
 
-    // 5. Scroll to top
+    // 5. Refresh calculations & charts for the newly active tab
+    try { updateCalculationsOnly(); } catch(e) {}
+
+    // 6. Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
