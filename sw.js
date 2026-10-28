@@ -1,4 +1,4 @@
-const C = 'fintrak-v18',
+const C = 'fintrak-v19',
   F = [
     './',
     'index.html',
