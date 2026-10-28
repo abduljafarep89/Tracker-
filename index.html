@@ -329,10 +329,401 @@ return `<div class="seg sm">${F.map(([k,l])=>`<button class="${fl==k?'on':''}" o
 <div style="position:relative;margin:8px 0 4px"><input type=text id=txSearchInp value="${e(V.sq||'')}" placeholder="🔍 Search description, category, card..." oninput="V.sq=this.value;render()" style="width:100%;min-height:38px;padding:0 30px 0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px">${V.sq?`<button onclick="V.sq='';render()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--mut);min-height:30px;padding:0 8px;font-size:16px;">✕</button>`:''}</div>
 <div class=m style="padding:0 4px">${L.length} entries${sq?` matching "${e(V.sq)}" · Spent ${f(fsp)}`:` · In ${f(sg('inc'))} · Spent ${f(sg('exp'))} · Invested ${f(sg('inv'))}`}</div>
 ${Object.keys(G).map(d=>{const x=G[d],sp=sum(x.filter(t=>t.t=='exp'));return `<div><div class=r style="padding:2px 4px"><b style="font-size:13px">${new Date(d+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}</b><span class=m>${sp?'Spent '+f(sp):''}</span></div><div class=c style="padding:4px 14px">${x.map(t=>`<div class=r onclick="txForm(S.tx.find(y=>y.id=='${t.id}'))">${(()=>{const b=getMerchantBadge(t.n,t.c,t.t);return `<span style="width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,${b.bg} 18%,transparent);color:${b.bg};border:1px solid color-mix(in srgb,${b.bg} 32%,transparent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex:none">${b.icon}</span>`})()}<div style="flex:1;min-width:0"><b>${e(t.n||t.c||'Entry')}</b><div class=m>${e(t.t=='pay'?'Card payment':t.t=='xfer'?'Transfer':t.c||'Uncategorised')} · ${chip(t.s)}${t.t=='pay'?' → '+chip(t.cd):t.t=='xfer'?' → '+chip(t.to):''}</div></div><b style="color:${t.t=='inc'?'var(--ok)':t.t=='inv'?'var(--pri)':t.t=='pay'||t.t=='xfer'?'var(--mut)':'var(--ink)'}">${t.t=='inc'?'+':t.t=='xfer'?'':'-'}${f(t.a)}</b></div>`).join('')}</div></div>`}).join('')||'<div class=c><div class=m>No matching entries.</div></div>'}`}
+
+// Global store for interactive MoM scrub data
+let MoMScrub = { cPts: [], pPts: [], maxVal: 1, cMonth: '', pMonth: '', dEval: 1, dnC: 31, dnP: 31 };
+
+function scrubMoM(ev) {
+  const svg = document.getElementById('momPaceSvg');
+  if (!svg || !MoMScrub.cPts.length) return;
+  const rect = svg.getBoundingClientRect();
+  const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+  const relX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+  const svgX = (relX / rect.width) * 340;
+  // Day 1 at X=16, Day 31 at X=324 (span 308)
+  const d = Math.max(1, Math.min(31, Math.round(1 + ((svgX - 16) / 308) * 30)));
+  
+  const cPt = MoMScrub.cPts.find(p => p[0] == d);
+  const pPt = MoMScrub.pPts.find(p => p[0] == Math.min(d, MoMScrub.dnP));
+  const cVal = cPt ? cPt[1] : (d <= MoMScrub.dEval && MoMScrub.cPts.length ? MoMScrub.cPts[MoMScrub.cPts.length - 1][1] : null);
+  const pVal = pPt ? pPt[1] : (MoMScrub.pPts.length ? MoMScrub.pPts[MoMScrub.pPts.length - 1][1] : 0);
+
+  const cursor = document.getElementById('momScrubCursor');
+  const tip = document.getElementById('momScrubTip');
+  const dotC = document.getElementById('momScrubDotC');
+  const dotP = document.getElementById('momScrubDotP');
+  
+  const curX = 16 + ((d - 1) / 30) * 308;
+  const Y = v => 140 - (v / MoMScrub.maxVal) * 122;
+
+  if (cursor) {
+    cursor.setAttribute('x1', curX);
+    cursor.setAttribute('x2', curX);
+    cursor.style.display = 'block';
+  }
+  if (dotP && pVal !== null) {
+    dotP.setAttribute('cx', curX);
+    dotP.setAttribute('cy', Y(pVal));
+    dotP.style.display = 'block';
+  }
+  if (dotC && cVal !== null) {
+    dotC.setAttribute('cx', curX);
+    dotC.setAttribute('cy', Y(cVal));
+    dotC.style.display = 'block';
+  }
+
+  if (tip) {
+    const diff = (cVal !== null) ? cVal - pVal : null;
+    const diffBadge = diff !== null ? (diff <= 0 ? `<b style="color:var(--ok)">${f(Math.abs(diff))} lower</b>` : `<b style="color:var(--bad)">+${f(diff)} higher</b>`) : '';
+    tip.innerHTML = `<span><b>Day ${d}:</b> ${cVal !== null ? MoMScrub.cMonth + ': <b>' + f(cVal) + '</b>' : 'Projection'} · ${MoMScrub.pMonth}: <b>${f(pVal)}</b></span><span>${diffBadge}</span>`;
+  }
+}
+
+function unscrubMoM() {
+  const cursor = document.getElementById('momScrubCursor');
+  const tip = document.getElementById('momScrubTip');
+  const dotC = document.getElementById('momScrubDotC');
+  const dotP = document.getElementById('momScrubDotP');
+  if (cursor) cursor.style.display = 'none';
+  if (dotC) dotC.style.display = 'none';
+  if (dotP) dotP.style.display = 'none';
+  if (tip) {
+    tip.innerHTML = tip.getAttribute('data-def') || '';
+  }
+}
+
+function analytics() {
+  let py = V.y, pm = V.m - 1;
+  if (pm < 0) { pm = 11; py--; }
+  const cKey = ym(V.y, V.m), pKey = ym(py, pm);
+  const cMonthName = new Date(V.y, V.m).toLocaleString('en-IN', { month: 'short' });
+  const pMonthName = new Date(py, pm).toLocaleString('en-IN', { month: 'short' });
+  const cFullMonth = new Date(V.y, V.m).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  const pFullMonth = new Date(py, pm).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+
+  const dn_c = new Date(V.y, V.m + 1, 0).getDate();
+  const dn_p = new Date(py, pm + 1, 0).getDate();
+  const isCur = cur();
+  const d_eval = isCur ? Math.min(T.getDate(), dn_c) : dn_c;
+
+  // Filter non-adjustment transactions
+  const txC = S.tx.filter(t => t.d.slice(0, 7) == cKey && !t.adj);
+  const txP = S.tx.filter(t => t.d.slice(0, 7) == pKey && !t.adj);
+
+  const expC = txC.filter(t => t.t == 'exp');
+  const expP = txP.filter(t => t.t == 'exp');
+
+  const incC = sum(txC.filter(t => t.t == 'inc'));
+  const incP = sum(txP.filter(t => t.t == 'inc'));
+
+  const invC = sum(txC.filter(t => t.t == 'inv'));
+  const invP = sum(txP.filter(t => t.t == 'inv'));
+
+  const totExpC = sum(expC);
+  const totExpP = sum(expP);
+
+  // Cumulative daily spend
+  let cCum = 0; const ptC = [];
+  for (let d = 1; d <= dn_c; d++) {
+    const dayAmt = sum(expC.filter(t => +t.d.slice(8) == d));
+    if (d <= d_eval) {
+      cCum += dayAmt;
+      ptC.push([d, cCum]);
+    }
+  }
+
+  let pCum = 0; const ptP = [];
+  for (let d = 1; d <= dn_p; d++) {
+    const dayAmt = sum(expP.filter(t => +t.d.slice(8) == d));
+    pCum += dayAmt;
+    ptP.push([d, pCum]);
+  }
+
+  const cumAtEvalC = ptC.length ? ptC[ptC.length - 1][1] : 0;
+  const cumAtEvalP = ptP.find(p => p[0] == Math.min(d_eval, dn_p)) ? ptP.find(p => p[0] == Math.min(d_eval, dn_p))[1] : pCum;
+
+  const diffAtEval = cumAtEvalC - cumAtEvalP;
+  const diffPctAtEval = cumAtEvalP > 0 ? (diffAtEval / cumAtEvalP) * 100 : (cumAtEvalC > 0 ? 100 : 0);
+
+  // Projected spend
+  const projC = isCur && d_eval > 0 ? (cumAtEvalC / d_eval) * dn_c : totExpC;
+
+  // Store for scrubber
+  const mxVal = Math.max(cumAtEvalC, pCum, projC, S.budget || 0, 1000);
+  MoMScrub = {
+    cPts: ptC, pPts: ptP, maxVal: mxVal,
+    cMonth: cMonthName, pMonth: pMonthName,
+    dEval: d_eval, dnC: dn_c, dnP: dn_p
+  };
+
+  const X = d => 16 + ((d - 1) / 30) * 308;
+  const Y = v => 140 - (v / mxVal) * 122;
+
+  const pathP = ptP.length ? ptP.map((p, i) => (i == 0 ? `M${X(p[0])},${Y(p[1])}` : `L${X(p[0])},${Y(p[1])}`)).join(' ') : '';
+  const pathC = ptC.length ? ptC.map((p, i) => (i == 0 ? `M${X(p[0])},${Y(p[1])}` : `L${X(p[0])},${Y(p[1])}`)).join(' ') : '';
+  const areaC = ptC.length ? `${pathC} L${X(d_eval)},140 L${X(1)},140 Z` : '';
+
+  const defTipText = `<span><b>Day ${d_eval}:</b> ${cMonthName}: <b>${f(cumAtEvalC)}</b> · ${pMonthName}: <b>${f(cumAtEvalP)}</b></span>` +
+    (diffAtEval <= 0 ? `<b style="color:var(--ok)">-${f(Math.abs(diffAtEval))} (${V.priv ? '••%' : Math.abs(Math.round(diffPctAtEval)) + '% lower'})</b>` :
+                       `<b style="color:var(--bad)">+${f(diffAtEval)} (${V.priv ? '••%' : '+' + Math.round(diffPctAtEval) + '% higher'})</b>`);
+
+  // Category variance matrix
+  const catC = {}, catP = {};
+  expC.forEach(t => { const k = t.c || 'Miscellaneous'; catC[k] = (catC[k] || 0) + t.a; });
+  expP.forEach(t => { const k = t.c || 'Miscellaneous'; catP[k] = (catP[k] || 0) + t.a; });
+
+  const allCats = Array.from(new Set([...Object.keys(catC), ...Object.keys(catP)]));
+  const maxCatSpend = Math.max(1, ...allCats.map(c => Math.max(catC[c] || 0, catP[c] || 0)));
+
+  const catRows = allCats.map(c => {
+    const vC = catC[c] || 0;
+    const vP = catP[c] || 0;
+    const diff = vC - vP;
+    const pct = vP > 0 ? (diff / vP) * 100 : (vC > 0 ? 100 : 0);
+    return { c, vC, vP, diff, pct };
+  }).sort((a, b) => b.vC - a.vC || Math.abs(b.diff) - Math.abs(a.diff));
+
+  // 6-Month Cashflow & Velocity
+  const sixMo = [];
+  for (let i = 5; i >= 0; i--) {
+    let my = V.y, mm = V.m - i;
+    while (mm < 0) { mm += 12; my--; }
+    while (mm > 11) { mm -= 12; my++; }
+    const k = ym(my, mm);
+    const label = new Date(my, mm).toLocaleString('en-IN', { month: 'short' });
+    const txs = S.tx.filter(t => t.d.slice(0, 7) == k && !t.adj);
+    const inc = sum(txs.filter(t => t.t == 'inc'));
+    const exp = sum(txs.filter(t => t.t == 'exp'));
+    const inv = sum(txs.filter(t => t.t == 'inv'));
+    const net = inc - exp - inv;
+    const saveRate = inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0;
+    sixMo.push({ k, my, mm, label, inc, exp, inv, net, saveRate, isCurrent: i == 0 });
+  }
+  const maxSix = Math.max(1, ...sixMo.map(m => Math.max(m.inc, m.exp, m.inv)));
+
+  // Payment method breakdown
+  const payMethods = {};
+  expC.forEach(t => { payMethods[t.s] = (payMethods[t.s] || 0) + t.a; });
+  const payRows = Object.entries(payMethods).sort((a, b) => b[1] - a[1]);
+
+  // Top Merchants / Payees
+  const merchMap = {};
+  expC.forEach(t => {
+    const name = (t.n || t.c || 'Miscellaneous').trim();
+    merchMap[name] = (merchMap[name] || 0) + t.a;
+  });
+  const topMerchants = Object.entries(merchMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  return `
+<div class=c style="background:linear-gradient(135deg,color-mix(in srgb,var(--pri) 12%,var(--card)),var(--card));border:1px solid color-mix(in srgb,var(--pri) 25%,var(--line))">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <span class=m style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Month-on-Month Executive Pulse</span>
+    <span style="font-size:12px;color:var(--pri);font-weight:700">${cMonthName} vs ${pMonthName}</span>
+  </div>
+  <div class=g style="gap:10px">
+    <div>
+      <div class=m>Spend (up to Day ${d_eval})</div>
+      <div class=big>${f(cumAtEvalC)}</div>
+      <div class=m style="font-size:12px;margin-top:2px">${pMonthName}: ${f(cumAtEvalP)} · ${diffAtEval <= 0 ? `<span class=ok style="font-weight:700">-${f(Math.abs(diffAtEval))} (${V.priv ? '••%' : Math.abs(Math.round(diffPctAtEval)) + '% ↓'})</span>` : `<span class=bad style="font-weight:700">+${f(diffAtEval)} (${V.priv ? '••%' : '+' + Math.round(diffPctAtEval) + '% ↑'})</span>`}</div>
+    </div>
+    <div>
+      <div class=m>Daily Burn Rate</div>
+      <div class=big>${f(d_eval ? cumAtEvalC / d_eval : 0)}<span style="font-size:12px;font-weight:400;color:var(--mut)">/day</span></div>
+      <div class=m style="font-size:12px;margin-top:2px">${pMonthName} avg: ${f(dn_p ? totExpP / dn_p : 0)}/day</div>
+    </div>
+  </div>
+  <div class=r style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px">
+    <span>Full month projection</span>
+    <b>${f(projC)} ${totExpP ? `<span style="font-size:11px;font-weight:400;color:var(--mut)">(vs ${f(totExpP)} in ${pMonthName})</span>` : ''}</b>
+  </div>
+</div>
+
+<div class=c>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <h3 style="margin:0">Cumulative Spend Pace</h3>
+    <div style="display:flex;gap:10px;font-size:11px;font-weight:600">
+      <span style="display:inline-flex;align-items:center;gap:4px;color:var(--pri)"><i style="width:10px;height:3px;background:var(--pri);border-radius:2px"></i> ${cMonthName}</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;color:var(--mut)"><i style="width:10px;height:2px;background:var(--mut);border-top:1px dashed var(--mut)"></i> ${pMonthName}</span>
+    </div>
+  </div>
+  <div class=m style="font-size:12px;margin-bottom:8px">Track daily burn speed against last month. Drag or tap along the chart to inspect any day.</div>
+  
+  <div style="position:relative;width:100%" id="momChartWrap">
+    <svg id="momPaceSvg" viewBox="0 0 340 160" width="100%" style="overflow:visible;touch-action:none;cursor:crosshair"
+         onmousemove="scrubMoM(event)" onmouseleave="unscrubMoM()"
+         ontouchstart="scrubMoM(event)" ontouchmove="scrubMoM(event)" ontouchend="unscrubMoM()">
+      <defs>
+        <linearGradient id="cGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--pri)" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="var(--pri)" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <!-- Gridlines -->
+      <line x1="16" y1="18" x2="324" y2="18" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="16" y1="79" x2="324" y2="79" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="16" y1="140" x2="324" y2="140" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="328" y="21" font-size="8.5" fill="var(--mut)" text-anchor="start">${f(mxVal)}</text>
+      <text x="328" y="82" font-size="8.5" fill="var(--mut)" text-anchor="start">${f(mxVal / 2)}</text>
+      
+      <!-- Last Month Line (Dashed) -->
+      ${pathP ? `<path d="${pathP}" fill="none" stroke="var(--mut)" stroke-width="2" stroke-dasharray="4 4" opacity="0.7"/>` : ''}
+      
+      <!-- Current Month Area & Solid Line -->
+      ${areaC ? `<path d="${areaC}" fill="url(#cGrad)"/>` : ''}
+      ${pathC ? `<path d="${pathC}" fill="none" stroke="var(--pri)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` : ''}
+      
+      <!-- Projection line -->
+      ${isCur && d_eval < dn_c ? `<line x1="${X(d_eval)}" y1="${Y(cumAtEvalC)}" x2="${X(dn_c)}" y2="${Y(projC)}" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="3 4"/>` : ''}
+      
+      <!-- Current day dot -->
+      ${ptC.length ? `<circle cx="${X(d_eval)}" cy="${Y(cumAtEvalC)}" r="5" fill="var(--pri)" stroke="var(--card)" stroke-width="2.5"/>` : ''}
+      
+      <!-- Interactive Scrubber elements -->
+      <line id="momScrubCursor" x1="0" y1="16" x2="0" y2="140" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 2" style="display:none;pointer-events:none"/>
+      <circle id="momScrubDotP" cx="0" cy="0" r="4.5" fill="var(--mut)" stroke="var(--card)" stroke-width="2" style="display:none;pointer-events:none"/>
+      <circle id="momScrubDotC" cx="0" cy="0" r="5" fill="var(--pri)" stroke="var(--card)" stroke-width="2" style="display:none;pointer-events:none"/>
+      
+      <!-- X-axis Labels -->
+      <text x="${X(1)}" y="154" font-size="9" fill="var(--mut)" text-anchor="start">Day 1</text>
+      <text x="${X(10)}" y="154" font-size="9" fill="var(--mut)" text-anchor="middle">10</text>
+      <text x="${X(20)}" y="154" font-size="9" fill="var(--mut)" text-anchor="middle">20</text>
+      <text x="${X(31)}" y="154" font-size="9" fill="var(--mut)" text-anchor="end">Day 31</text>
+    </svg>
+  </div>
+  
+  <div id="momScrubTip" data-def="${e(defTipText)}" style="margin-top:6px;padding:8px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12px;display:flex;justify-content:space-between;align-items:center;min-height:36px">
+    ${defTipText}
+  </div>
+</div>
+
+<div class=c>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <h3 style="margin:0">Category Shift & Variance</h3>
+    <span class=m style="font-size:12px">${cMonthName} vs ${pMonthName}</span>
+  </div>
+  ${catRows.length ? catRows.map(r => {
+    const badge = getMerchantBadge('', r.c, 'exp');
+    const barC = (r.vC / maxCatSpend) * 100;
+    const barP = (r.vP / maxCatSpend) * 100;
+    return `
+    <div style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,${badge.bg} 18%,transparent);color:${badge.bg};display:flex;align-items:center;justify-content:center;font-size:14px;flex:none">${badge.icon}</span>
+          <div>
+            <b style="font-size:13px">${e(r.c)}</b>
+            <div class=m style="font-size:11px">${pMonthName}: ${f(r.vP)} → ${cMonthName}: ${f(r.vC)}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <b style="font-size:14px">${f(r.vC)}</b>
+          <div>
+            ${r.vP === 0 ? `<span class="badge-countdown" style="background:rgba(79,70,229,.14);color:var(--pri)">New</span>` :
+              r.vC === 0 ? `<span class="badge-countdown" style="background:rgba(15,118,110,.14);color:var(--ok)">-100% (Zero)</span>` :
+              r.diff <= 0 ? `<span class="badge-countdown" style="background:rgba(15,118,110,.14);color:var(--ok)">-${f(Math.abs(r.diff))} (${V.priv ? '••%' : Math.abs(Math.round(r.pct)) + '% ↓'})</span>` :
+                            `<span class="badge-countdown" style="background:rgba(185,28,28,.14);color:var(--bad)">+${f(r.diff)} (${V.priv ? '••%' : '+' + Math.round(r.pct) + '% ↑'})</span>`}
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
+        <div style="height:5px;border-radius:3px;background:var(--line);overflow:hidden"><div style="height:100%;width:${barC}%;background:var(--pri);border-radius:3px"></div></div>
+        ${r.vP > 0 ? `<div style="height:3px;border-radius:2px;background:var(--line);overflow:hidden;opacity:0.6"><div style="height:100%;width:${barP}%;background:var(--mut);border-radius:2px"></div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('') : '<div class=m>No expenses recorded in either month to compare.</div>'}
+</div>
+
+<div class=c>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <h3 style="margin:0">6-Month Cashflow & Savings</h3>
+    <div style="display:flex;gap:8px;font-size:11px;font-weight:600">
+      <span style="color:var(--ok)">■ In</span>
+      <span style="color:var(--bad)">■ Out</span>
+      <span style="color:var(--pri)">■ Invest</span>
+    </div>
+  </div>
+  <div class=m style="font-size:12px;margin-bottom:10px">Income vs total living burn vs invested wealth over the past 6 months.</div>
+  
+  <div style="width:100%;overflow-x:auto">
+    <svg viewBox="0 0 340 120" width="100%" style="overflow:visible">
+      <line x1="10" y1="100" x2="330" y2="100" stroke="var(--line)" stroke-width="1.5"/>
+      ${sixMo.map((m, i) => {
+        const xCenter = 25 + i * 54;
+        const bW = 12;
+        const hInc = (m.inc / maxSix) * 85;
+        const hExp = (m.exp / maxSix) * 85;
+        const hInv = (m.inv / maxSix) * 85;
+        return `
+          <g>
+            ${m.isCurrent ? `<rect x="${xCenter - 22}" y="6" width="44" height="106" rx="8" fill="color-mix(in srgb,var(--pri) 8%,transparent)" stroke="color-mix(in srgb,var(--pri) 25%,transparent)"/>` : ''}
+            <rect x="${xCenter - 19}" y="${100 - hInc}" width="${bW}" height="${hInc}" rx="2" fill="var(--ok)"/>
+            <rect x="${xCenter - 6}" y="${100 - hExp}" width="${bW}" height="${hExp}" rx="2" fill="var(--bad)"/>
+            <rect x="${xCenter + 7}" y="${100 - hInv}" width="${bW}" height="${hInv}" rx="2" fill="var(--pri)"/>
+            <text x="${xCenter}" y="114" font-size="10" font-weight="${m.isCurrent ? '700' : '500'}" fill="${m.isCurrent ? 'var(--pri)' : 'var(--ink)'}" text-anchor="middle">${m.label}</text>
+          </g>
+        `;
+      }).join('')}
+    </svg>
+  </div>
+  
+  <div class=tiles style="margin-top:10px">
+    <div class=tile style="background:rgba(15,118,110,.12)">
+      <span class=m>6-Mo Avg Income</span>
+      <b>${f(sum(sixMo, 'inc') / 6)}</b>
+    </div>
+    <div class=tile style="background:rgba(185,28,28,.12)">
+      <span class=m>6-Mo Avg Burn</span>
+      <b>${f(sum(sixMo, 'exp') / 6)}</b>
+    </div>
+    <div class=tile style="background:rgba(79,70,229,.12)">
+      <span class=m>6-Mo Avg Invested</span>
+      <b>${f(sum(sixMo, 'inv') / 6)}</b>
+    </div>
+  </div>
+</div>
+
+<div class=g>
+  <div class=c>
+    <h3 style="margin-bottom:6px">Card & Account Spend</h3>
+    <div class=m style="font-size:12px;margin-bottom:8px">Where payments originated this month.</div>
+    ${payRows.length ? payRows.map(([sId, amt]) => {
+      const pctOfTotal = totExpC > 0 ? Math.round((amt / totExpC) * 100) : 0;
+      return `
+        <div class=r style="padding:4px 0;font-size:12px">
+          <span>${chip(sId)}</span>
+          <div style="text-align:right">
+            <b>${f(amt)}</b>
+            <span class=m style="font-size:11px">(${V.priv ? '••%' : pctOfTotal + '%'})</span>
+          </div>
+        </div>
+      `;
+    }).join('') : '<div class=m>No expenses recorded.</div>'}
+  </div>
+
+  <div class=c>
+    <h3 style="margin-bottom:6px">Top 5 Spending Destinations</h3>
+    <div class=m style="font-size:12px;margin-bottom:8px">Largest expense drivers.</div>
+    ${topMerchants.length ? topMerchants.map(([name, amt]) => {
+      const pctOfTotal = totExpC > 0 ? Math.round((amt / totExpC) * 100) : 0;
+      return `
+        <div class=r style="padding:4px 0;font-size:12px">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px"><b>${e(name)}</b></span>
+          <div style="text-align:right">
+            <b>${f(amt)}</b>
+            <span class=m style="font-size:11px">(${V.priv ? '••%' : pctOfTotal + '%'})</span>
+          </div>
+        </div>
+      `;
+    }).join('') : '<div class=m>No expenses recorded.</div>'}
+  </div>
+</div>
+`;
+}
+
 const more=()=>`<div class=c><h3>Bank accounts</h3>${S.acc.map(a=>`<div class=r onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))"><span><i class=dot style="background:${colr(a.id)}"></i>${e(a.n)}</span><b>${f(accBal(a))}</b></div>`).join('')||'<div class=m>No accounts yet.</div>'}<button style="width:100%;margin-top:8px" onclick="accForm()">Add bank account</button><button style="width:100%;margin-top:8px" onclick="txForm({t:'xfer'})">Transfer between accounts</button></div>
 <div class=c><h3>Settings</h3><div class=r><span>Monthly budget</span><b>${f(S.budget)}</b></div><button style="width:100%" onclick="budForm()">Set monthly budget</button><button style="width:100%;margin-top:8px" onclick="tidy()">Tidy old categories</button><button style="width:100%;margin-top:8px" onclick="S.est=!S.est;save()">Include everyday spending estimate in forecast: ${S.est?'On':'Off'}</button><div class=row><button onclick="bk()">Export backup</button><button onclick="imp.click()">Import backup</button></div><button style="width:100%;margin-top:8px" onclick="expCsv()">📊 Export all transactions to CSV (Excel)</button><input type=file id=imp accept=.json hidden onchange="ld(this)"></div>
 ${appear()}<div class=c><h3>Install on your phone</h3><div class=m>Android Chrome: menu, Install app. iPhone Safari: Share, Add to Home Screen. Data stays on this device, so export a backup regularly.</div></div>`;
-function render(){const activeId=document.activeElement?document.activeElement.id:null,selStart=(activeId&&document.activeElement.selectionStart)||0;const P={home,cards,plan,hist,more};$('#app').innerHTML=`<header><b>Fintrak</b><div style="display:flex;align-items:center;gap:8px"><button onclick="togglePriv()" style="width:36px;height:36px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center" aria-label="Toggle Privacy" title="Toggle Privacy Mode">${V.priv?'🙈':'👁️'}</button>${V.t!='more'?`<div class=mn><button onclick="mv(-1)" aria-label="Previous month">‹</button><span>${mo()}</span><button onclick="mv(1)" aria-label="Next month">›</button></div>`:''}</div></header><main>${P[V.t]()}</main><button class=fab onclick="txForm()" aria-label="Add entry">+</button><nav>${[['home','Home','M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'],['cards','Cards','M2 6h20v12H2zM2 10h20'],['plan','Plan','M4 5h16v16H4zM4 10h16M8 3v4M16 3v4'],['hist','History','M4 6h16M4 12h16M4 18h10'],['more','More','M5 12h.01M12 12h.01M19 12h.01']].map(([k,l,p])=>`<button class="${V.t==k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24"><path d="${p}"/></svg>${l}</button>`).join('')}</nav>`;if(activeId){const el=document.getElementById(activeId);if(el){el.focus();if(el.setSelectionRange)el.setSelectionRange(selStart,selStart);}}};
+function render(){const activeId=document.activeElement?document.activeElement.id:null,selStart=(activeId&&document.activeElement.selectionStart)||0;const P={home,cards,analytics,plan,hist,more};$('#app').innerHTML=`<header><div style='display:flex;align-items:center;gap:6px'><b>Fintrak</b>${V.t=='more'?'<span style="font-size:13px;opacity:0.7">· Settings</span>':V.t=='analytics'?'<span style="font-size:13px;opacity:0.7">· Analytics</span>':''}</div><div style="display:flex;align-items:center;gap:8px"><button onclick="togglePriv()" style="width:36px;height:36px;min-height:0;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center" aria-label="Toggle Privacy" title="Toggle Privacy Mode">${V.priv?'🙈':'👁️'}</button><button onclick="go(V.t=='more'?'home':'more')" style="width:36px;height:36px;min-height:0;padding:0;border-radius:50%;border:1px solid ${V.t=='more'?'var(--pri)':'var(--line)'};background:${V.t=='more'?'color-mix(in srgb,var(--pri) 15%,var(--card))':'var(--card)'};color:var(--ink);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center" aria-label="Settings" title="Settings">${V.t=='more'?'✕':'⚙️'}</button>${V.t!='more'?`<div class=mn><button onclick="mv(-1)" aria-label="Previous month">‹</button><span>${mo()}</span><button onclick="mv(1)" aria-label="Next month">›</button></div>`:''}</div></header><main>${P[V.t]()}</main><button class=fab onclick="txForm()" aria-label="Add entry">+</button><nav>${[['home','Home','M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'],['cards','Cards','M2 6h20v12H2zM2 10h20'],['analytics','Analytics','M18 20V10M12 20V4M6 20v-6'],['plan','Plan','M4 5h16v16H4zM4 10h16M8 3v4M16 3v4'],['hist','History','M4 6h16M4 12h16M4 18h10']].map(([k,l,p])=>`<button class="${V.t==k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24"><path d="${p}"/></svg>${l}</button>`).join('')}</nav>`;if(activeId){const el=document.getElementById(activeId);if(el){el.focus();if(el.setSelectionRange)el.setSelectionRange(selStart,selStart);}}};
 const SA=matchMedia('(display-mode: standalone)').matches||navigator.standalone;let lb=0;
 function toast(m){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}t.textContent=m;t.style.opacity=1;clearTimeout(t.h);t.h=setTimeout(()=>t.style.opacity=0,2000)}
 function go(t){if(V.t==t)return;const h=V.t=='home';V.t=t;if(t=='home'){render();if(history.state&&history.state.t&&history.state.t!='home')history.back()}else{history[h?'pushState':'replaceState']({t},'');render()}}
