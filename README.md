@@ -21,38 +21,70 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 
 ---
 
-## 2. Core Architecture & Enhancements
+## 2. Core Bugfixes & Trust In Data
 
-* **Trustworthy Numbers**:
-  * **Safe Daily Spend**: Based on your remaining monthly budget ($(\text{Budget} - \text{Spent}) / \text{Days Left}$), or on uncommitted monthly surplus if no budget is set. Never divides lifetime bank cash.
-  * **Net Cashflow & Salary Pending**: Measures spending and investment percentages against total expected monthly income so figures remain accurate before salary arrives.
-  * **Empty Month Analytics**: Displays "No prior month data" instead of a false +100% surge alert when comparing against an empty previous month.
-* **Navigation & Mobile Layout**:
-  * 5 primary bottom tabs: `Home`, `Cards`, `Analytics`, `Plan`, `History`.
-  * Fully opaque bottom navigation (`z-index: 1000`) across all screens.
-  * Compact header with `"Oct 2026"` date formatting designed for 360px–390px viewports.
-  * Settings and tools accessible via the header gear icon (`⚙️`).
-* **Data Safety & PWA**:
-  * Single storage key (`fintrak_v1`) with automatic legacy migration.
-  * Safe writes wrapped in `try/catch` with automated storage persistence (`navigator.storage.persist()`).
-  * 14-day backup reminder banner.
-  * Stale-While-Revalidate service worker (`sw.js`) caching assets individually via `Promise.allSettled`.
-* **Minimalist Brand Icons**:
-  * Ultra-compressed icons (all under 10 KB).
-  * Full-bleed square maskable icon (`icon-512-maskable.png`) with logo placed within the central 80% safe zone.
-  * High-contrast simplified 32×32 favicon.
+* **Accurate Safe Daily Spend**:
+  * If a monthly budget is set: divides the *remaining budget* ($\text{Budget} - \text{Spent}$) by the remaining days in the month.
+  * If no budget is set: divides the *uncommitted monthly surplus* ($\text{Planned Income} - \text{Fixed Bills} - \text{Investments} - \text{Spent}$) by the remaining days.
+  * Never divides your accumulated lifetime bank balance by remaining days.
+* **Realistic Net Surplus & Split Bar**:
+  * Measures spending and investment percentages against *total expected monthly income* rather than income received to date.
+  * When salary hasn't arrived yet, displays the expected month-end surplus along with a note explaining that salary is pending, preventing negative surplus alerts and split bars exceeding 100%.
+* **Empty Month Handling in Analytics**:
+  * When comparing against an empty prior month (such as September), displays "No prior month data" instead of a false "+100% surge" alert.
+* **Resilient Offline PWA Service Worker**:
+  * Removed redundant `manifest.json`.
+  * `sw.js` caches each asset individually using `Promise.allSettled`, so a single missing asset will not fail the installation.
+  * Implements Stale-While-Revalidate caching for near-instant app startup and background cache updates.
+* **Solid Bottom Navigation Bar**:
+  * Set `nav { background: var(--card) !important; z-index: 1000 !important; opacity: 1 !important; }` to eliminate transparency in the Cards section and ensure consistent appearance across all screens.
+* **Responsive Header (360px–390px Viewports)**:
+  * Formats month navigation as compact `"Oct 2026"` to prevent line-wrapping and avoid clipping the right navigation arrow.
+* **Data Safety & Persistence**:
+  * Single storage key (`fintrak_v1`) with automatic legacy data migration.
+  * All `save()` calls wrapped in `try/catch` with automated storage persistence (`navigator.storage.persist()`).
+  * 14-day backup reminder banner when a backup hasn't been exported recently.
 
 ---
 
-## 3. Advanced Feature Suite
+## 3. New Feature Guides
 
-* **People Ledger ("Who Owes Me What")**: Track hand loans, split bills, and repayments from friends and family with optional auto-reconciliation to bank accounts.
-* **Category Budgets**: Set spending limits per category with visual progress bars and over-budget warnings.
-* **Bank SMS & UPI Parser**: Paste bank transaction SMS messages to automatically extract amounts, merchants, dates, and categories.
-* **Calendar Reminders Export (`.ics`)**: Export upcoming credit card statement due dates and planned payment alerts to Google Calendar or Apple Calendar with 1-day advance notifications.
-* **Quick Add Shortcuts**: 1-tap shortcut pills on Home for frequent expenses (`Fuel`, `Coffee`, `Groceries`, `Food`).
-* **Undo Engine**: 5-second interactive Undo action toast when deleting any transaction or planned item.
-* **Backup Sharing & App Lock**: Share backups directly via WhatsApp/Drive using the Web Share API, with optional password protection and a 4-digit security PIN lock.
+### A. People Ledger ("Who Owes Me What")
+* Located in the **Settings / More** view.
+* Track informal loans, shared bills, and repayments from friends and family (e.g., Uma, Janish, Jinsha).
+* Tap **+ Lend** or **+ Repaid** to record balance adjustments.
+* Optionally link transactions directly to a bank account to automatically record debit or credit entries.
+
+### B. Bank SMS & UPI Parser
+* Tap **📋 Parse Bank SMS / UPI** in Settings or inside the **Add Transaction** dialog.
+* Paste any standard Indian transaction SMS (HDFC, ICICI, SBI, Axis, UPI).
+* The regex engine extracts:
+  * Amount (e.g., `Rs. 450.00`)
+  * Payee / Merchant (e.g., `SWIGGY`, `BPCL`)
+  * Date
+  * Auto-categorization (`Restaurant & takeaway`, `Fuel`, `Groceries`)
+  * Matching bank account
+
+### C. Calendar Export (`.ics`)
+* Tap **📅 Export Card Bills to Calendar (.ics)** in Settings.
+* Generates a standard `.ics` file containing all credit card statement due dates and recurring bills.
+* Imports into Google Calendar, Apple Calendar, or Outlook with 1-day advance reminder notifications.
+
+### D. Category Budgets
+* Set monthly spending caps per category (e.g., Fuel: ₹5,000, Dining: ₹8,000).
+* Visual progress bars show consumed vs. remaining funds with over-budget alerts.
+
+### E. Quick Add Shortcuts
+* Tap shortcut pills on the Home screen to quickly log frequent expenses (e.g., `+ Fuel ₹2,000`, `+ Coffee ₹50`).
+* PWA Web App Manifest shortcuts support long-pressing the home screen icon to open the Add Transaction dialog directly.
+
+### F. Undo After Delete
+* When deleting any transaction, a 5-second toast notification appears with an **Undo** action button to restore the entry immediately.
+
+### G. Backup Sharing & PIN Lock
+* Tap **Export / Share Backup** to share your backup directly to WhatsApp, Google Drive, or Gmail using the Web Share API.
+* Protect exports with a custom password envelope.
+* Enable an optional 4-digit PIN lock under Security to require authentication on app launch.
 
 ---
 

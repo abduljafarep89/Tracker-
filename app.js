@@ -1848,8 +1848,8 @@ function analytics() {
 // 4. PLAN & CALENDAR TAB
 const KS = {
   cal: ['Calendar', 'var(--pri)', 'event'],
-  exp: ['Payments', 'var(--warn)', 'payment'],
-  inv: ['Investments', 'var(--pri)', 'investment'],
+  exp: ['Bills', 'var(--warn)', 'payment'],
+  inv: ['Invest', 'var(--pri)', 'investment'],
   inc: ['Income', 'var(--ok)', 'income'],
   goals: ['Goals', 'var(--ok)', 'goal']
 };
@@ -2004,13 +2004,20 @@ function hist() {
     ${V.sq ? `<button onclick="V.sq='';render()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--mut);min-height:30px;padding:0 8px;font-size:16px;">✕</button>` : ''}
   </div>
 
-  <div style="display:flex;gap:6px;margin-bottom:6px">
-    <input type=date aria-label="From Date" value="${e(V.dateFrom)}" onchange="V.dateFrom=this.value;render()" style="flex:1;min-height:36px;font-size:11px;padding:0 6px;border-radius:8px;border:1px solid var(--line);background:var(--card)">
-    <input type=date aria-label="To Date" value="${e(V.dateTo)}" onchange="V.dateTo=this.value;render()" style="flex:1;min-height:36px;font-size:11px;padding:0 6px;border-radius:8px;border:1px solid var(--line);background:var(--card)">
-    ${(V.dateFrom || V.dateTo) ? `<button onclick="V.dateFrom='';V.dateTo='';render()" style="min-height:36px;padding:0 8px;font-size:12px">Clear</button>` : ''}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <span class=m style="padding:0 4px">${L.length} entries · Spent: <b>${f(fsp)}</b></span>
+    <button type=button onclick="V.showDateFilter=!V.showDateFilter;render()" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px;background:${(V.dateFrom || V.dateTo) ? 'color-mix(in srgb,var(--pri) 15%,var(--card))' : 'var(--card)'};border:1px solid ${(V.dateFrom || V.dateTo) ? 'var(--pri)' : 'var(--line)'};display:flex;align-items:center;gap:4px">
+      📅 ${(V.dateFrom || V.dateTo) ? 'Dates Active' : 'Filter Date'}
+    </button>
   </div>
-
-  <div class=m style="padding:0 4px">${L.length} entries · Spent: <b>${f(fsp)}</b></div>
+  ${(V.showDateFilter || V.dateFrom || V.dateTo) ? `
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line)">
+    <span class=m style="font-size:12px">From</span>
+    <input type=date value="${e(V.dateFrom)}" onchange="V.dateFrom=this.value;render()" style="flex:1;min-height:34px;font-size:12px;padding:0 6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
+    <span class=m style="font-size:12px">To</span>
+    <input type=date value="${e(V.dateTo)}" onchange="V.dateTo=this.value;render()" style="flex:1;min-height:34px;font-size:12px;padding:0 6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
+    <button onclick="V.dateFrom='';V.dateTo='';V.showDateFilter=false;render()" style="min-height:34px;padding:0 8px;font-size:12px;border:0;background:none;color:var(--bad)">✕</button>
+  </div>` : ''}
 
   ${Object.keys(G).map(d => {
     const x = G[d], sp = sum(x.filter(t => t.t == 'exp'));
@@ -2224,6 +2231,10 @@ function render() {
       el.focus();
       if (el.setSelectionRange) el.setSelectionRange(selStart, selStart);
     }
+  }
+  const activeSeg = document.querySelector('.seg button.on');
+  if (activeSeg && activeSeg.scrollIntoView) {
+    activeSeg.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }
 }
 
