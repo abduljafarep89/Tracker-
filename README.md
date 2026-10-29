@@ -60,13 +60,13 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 
 ### A. People Ledger ("Who Owes Me What")
 * Located in the **Settings / More** view.
-* Track informal loans, shared bills, and repayments from friends and family (e.g., Uma, Janish, Jinsha).
+* Track informal loans, shared bills, and repayments from friends and family (e.g., Alex, Jordan, Sam).
 * Tap **+ Lend** or **+ Repaid** to record balance adjustments.
 * Optionally link transactions directly to a bank account to automatically record debit or credit entries.
 
 ### B. Bank SMS & UPI Parser
 * Tap **📋 Parse Bank SMS / UPI** in Settings or inside the **Add Transaction** dialog.
-* Paste any standard Indian transaction SMS (HDFC, ICICI, SBI, Axis, UPI).
+* Paste any standard Indian transaction SMS (Apex Bank, Horizon Bank, Stellar Bank, Axis, UPI).
 * The regex engine extracts:
   * Amount (e.g., `Rs. 450.00`)
   * Payee / Merchant (e.g., `SWIGGY`, `BPCL`)
@@ -107,9 +107,9 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 
 * **Credit Card Balance Reconciliation**:
   * Tap **⚖️ Adjust Balance** directly on any credit card card.
-  * Enter your actual live total outstanding balance from your banking app (e.g. HDFC MyCards, iMobile, SBI Card).
+  * Enter your actual live total outstanding balance from your banking app (e.g. Apex Bank MyCards, iMobile, Stellar Bank Card).
   * Fintrak automatically calculates the difference:
-    * **If real balance is higher (+₹5,000)**: Automatically records an unlogged card expense in History on that card (`HDFC: Outside app card spending`), immediately updating your card balance to match reality.
+    * **If real balance is higher (+₹5,000)**: Automatically records an unlogged card expense in History on that card (`Apex Bank: Outside app card spending`), immediately updating your card balance to match reality.
     * **If real balance is lower (-₹2,000)**: Automatically records a card balance reduction/refund in History without touching any bank account.
   * Tagged in History with the distinct badge: `[⚖️ Outside App Adjustment]`.
 
@@ -127,7 +127,7 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 ### H. Paid for a Friend / Reimbursable Transactions
 * **How It Works**:
   * In the **Add / Edit Entry** form, check **🤝 Paid for a friend (Reimbursable)**.
-  * Optionally select the friend from your **People Ledger** (e.g., Uma, Janish, Jinsha).
+  * Optionally select the friend from your **People Ledger** (e.g., Alex, Jordan, Sam).
 * **For Historical Payments**:
   * Tap any existing transaction in the **History** tab to open its edit dialog.
   * Check the reimbursable toggle and select the friend (or uncheck to revert).

@@ -99,11 +99,11 @@ if (!anHtml.includes('+100% ↑') && (anHtml.includes('No ') || anHtml.includes(
 
 // 4. Indian Bank SMS Parser
 console.log('\n--- 4. Testing Indian Bank SMS / UPI Parser ---');
-const sampleSms1 = 'Sent Rs.450.00 from HDFC Bank to SWIGGY on 28-OCT-26 via UPI Ref 123456';
+const sampleSms1 = 'Sent Rs.450.00 from Apex Bank to SWIGGY on 28-OCT-26 via UPI Ref 123456';
 const parsed1 = api.parseBankSMS(sampleSms1);
-console.log('Parsed HDFC SMS:', parsed1);
+console.log('Parsed Apex SMS:', parsed1);
 if (parsed1.a === 450 && parsed1.n.toUpperCase().includes('SWIGGY') && parsed1.c === 'Restaurant & takeaway') {
-  console.log('✓ PASS: HDFC Swiggy SMS correctly parsed amount (450), merchant, and food category!');
+  console.log('✓ PASS: Apex Swiggy SMS correctly parsed amount (450), merchant, and food category!');
 } else {
   console.error('FAIL: SMS parser failed on sample 1', parsed1);
   process.exit(1);
@@ -122,8 +122,8 @@ if (parsed2.a === 2000 && parsed2.c === 'Fuel') {
 // 5. People Ledger
 console.log('\n--- 5. Testing People Ledger ---');
 api.S.people = [];
-api.S.people.push({ id: 'p1', name: 'Uma', balance: 5000, notes: 'Office trip expense', txs: [] });
-if (api.S.people.length === 1 && api.S.people[0].name === 'Uma' && api.S.people[0].balance === 5000) {
+api.S.people.push({ id: 'p1', name: 'Alex', balance: 5000, notes: 'Office trip expense', txs: [] });
+if (api.S.people.length === 1 && api.S.people[0].name === 'Alex' && api.S.people[0].balance === 5000) {
   console.log('✓ PASS: People ledger added person with initial balance.');
 } else {
   console.error('FAIL: People ledger add failed', api.S.people);
@@ -201,8 +201,8 @@ if (hXfer.includes('Total Transferred:') && hXfer.includes('₹1,000') && !hXfer
 // 9. Test Reimbursable (Paid for Friend) Exclusion & Card Liability Accuracy
 console.log('\n--- 9. Testing Reimbursable Friend Payments ---');
 api.V.hf = 'all';
-api.S.cards = [{ id: 'cc_test', n: 'HDFC Millennia', limit: 150000, bill: 12, due: 5 }];
-api.S.people = [{ id: 'p_uma', name: 'Uma', balance: 0, txs: [] }];
+api.S.cards = [{ id: 'cc_test', n: 'Apex Millennia', limit: 150000, bill: 12, due: 5 }];
+api.S.people = [{ id: 'p_uma', name: 'Alex', balance: 0, txs: [] }];
 const todayDate = api.iso(api.T);
 
 // Add swipe for friend
@@ -227,7 +227,7 @@ if (!an.includes('₹15,000')) {
 }
 
 const histHtml = api.hist();
-if (histHtml.includes('🤝 For Friend · Uma')) {
+if (histHtml.includes('🤝 For Friend · Alex')) {
   console.log('✓ PASS: History displays friend reimbursable badge.');
 } else {
   console.error('FAIL: History missing reimbursable badge');
@@ -238,13 +238,13 @@ if (histHtml.includes('🤝 For Friend · Uma')) {
 // 10. Test Relocated People Ledger, Bank Hub, and Clean Settings
 console.log('\n--- 10. Testing Relocated Features & Clean Settings ---');
 api.S.people = [
-  { id: '1', name: 'Amjith', balance: 50000, notes: 'Flight ticket Oct' },
-  { id: '2', name: 'Dilshan', balance: 0, notes: 'Settled' }
+  { id: '1', name: 'Taylor', balance: 50000, notes: 'Flight ticket Oct' },
+  { id: '2', name: 'Morgan', balance: 0, notes: 'Settled' }
 ];
 
 api.V.pt = 'people';
 const plHtml = api.plan();
-if (plHtml.includes('Amjith') && plHtml.includes('₹50,000') && plHtml.includes('Hide settled')) {
+if (plHtml.includes('Taylor') && plHtml.includes('₹50,000') && plHtml.includes('Hide settled')) {
   console.log('✓ PASS: Plan tab features full People Ledger with 3x2 grid and "Hide settled" filter.');
 } else {
   console.error('FAIL: Plan People Ledger view failed', plHtml);
@@ -278,7 +278,7 @@ if (!mrHtml.includes('Bank accounts') && mrHtml.includes('App Lock & Security') 
 
 // 11. Test Account Balance Reconciliation (Outside App Spending / Income)
 console.log('\n--- 11. Testing Account Balance Reconciliation & Adjustment ---');
-api.S.acc = [{ id: 'acc_icici', n: 'ICICI Bank', o: 50000 }];
+api.S.acc = [{ id: 'acc_icici', n: 'Horizon Bank', o: 50000 }];
 api.S.tx = []; // fresh ledger
 
 // Initial balance is 50,000
@@ -295,7 +295,7 @@ api.S.tx.push({
   t: 'exp',
   a: Math.abs(diff1),
   c: 'Miscellaneous',
-  n: 'ICICI Bank: Outside app spending (Balance adjustment)',
+  n: 'Horizon Bank: Outside app spending (Balance adjustment)',
   s: 'acc_icici',
   adj: 1,
   reimb: 0
@@ -317,7 +317,7 @@ api.S.tx.push({
   t: 'inc',
   a: diff2,
   c: 'Other income',
-  n: 'ICICI Bank: Outside app income (Balance adjustment)',
+  n: 'Horizon Bank: Outside app income (Balance adjustment)',
   s: 'acc_icici',
   adj: 1,
   reimb: 0
@@ -344,7 +344,7 @@ if (histView.includes('Outside App Adjustment') && histView.includes('📋 All')
 
 // 12. Test Credit Card Balance Reconciliation (Outside App Card Spending / Refunds)
 console.log('\n--- 12. Testing Credit Card Balance Reconciliation & Adjustment ---');
-api.S.cards = [{ id: 'cc_hdfc_test', n: 'HDFC Millennia', limit: 150000, bill: 12, due: 5 }];
+api.S.cards = [{ id: 'cc_hdfc_test', n: 'Apex Millennia', limit: 150000, bill: 12, due: 5 }];
 api.S.tx = []; // fresh ledger
 
 // Initial card balance is 0
@@ -361,7 +361,7 @@ api.S.tx.push({
   t: 'exp',
   a: diffCard1,
   c: 'Miscellaneous',
-  n: 'HDFC Millennia: Outside app card spending (Balance adjustment)',
+  n: 'Apex Millennia: Outside app card spending (Balance adjustment)',
   s: 'cc_hdfc_test',
   adj: 1,
   reimb: 0
@@ -383,7 +383,7 @@ api.S.tx.push({
   t: 'pay',
   a: Math.abs(diffCard2),
   c: 'Card payment',
-  n: 'HDFC Millennia: Card refund / reversal (Balance adjustment)',
+  n: 'Apex Millennia: Card refund / reversal (Balance adjustment)',
   s: '',
   cd: 'cc_hdfc_test',
   adj: 1
@@ -399,7 +399,7 @@ if (cBal === 12000) {
 
 // Case C: Check card view renders ⚖️ Adjust Balance button
 const cdView = api.cards();
-if (cdView.includes('⚖️ Adjust Balance')) {
+if (cdView.includes('⚖️ Adjust') && cdView.includes('reconcileCardForm')) {
   console.log('✓ PASS: Cards view displays "⚖️ Adjust Balance" on credit cards.');
 } else {
   console.error('FAIL: Cards view missing Adjust Balance button', cdView);

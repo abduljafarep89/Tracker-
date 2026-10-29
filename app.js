@@ -63,7 +63,8 @@ let V = {
   dateTo: '',
   catFilter: '',
   sim: 0
-};
+, hideSettled: true};
+try { V.hideSettled = localStorage.getItem('fintrak_hide_settled') !== '0'; } catch(e) {}
 try {
   V.priv = localStorage.getItem('fintrak_priv') === '1';
 } catch (e) {}
@@ -88,7 +89,10 @@ const MODES = {
   light: { bg: '#F4F5FA', card: '#FFFFFF', ink: '#1B1F3B', mut: '#4B5160', line: '#E4E6F2', ok: '#0F766E', warn: '#B45309', bad: '#B91C1C' },
   warm: { bg: '#FAF5EC', card: '#FFFDF8', ink: '#2B2118', mut: '#6B5A48', line: '#EADFCB', ok: '#0F766E', warn: '#B45309', bad: '#B91C1C' },
   dark: { bg: '#10121F', card: '#1A1D33', ink: '#EEF0FF', mut: '#A9AEC9', line: '#2C3050', ok: '#4FD1C5', warn: '#F6AD55', bad: '#FC8181' },
-  black: { bg: '#000000', card: '#121214', ink: '#F4F4F5', mut: '#A1A1AA', line: '#27272A', ok: '#4FD1C5', warn: '#F6AD55', bad: '#FC8181' }
+  black: { bg: '#000000', card: '#121214', ink: '#F4F4F5', mut: '#A1A1AA', line: '#27272A', ok: '#4FD1C5', warn: '#F6AD55', bad: '#FC8181' },
+  nord: { bg: '#242933', card: '#2E3440', ink: '#ECEFF4', mut: '#D8DEE9', line: '#3B4252', ok: '#A3BE8C', warn: '#EBCB8B', bad: '#BF616A' },
+  cyber: { bg: '#0A0814', card: '#141026', ink: '#F5F3FF', mut: '#A78BFA', line: '#27204A', ok: '#2DD4BF', warn: '#FBBF24', bad: '#F43F5E' },
+  sage: { bg: '#F2F6F3', card: '#FFFFFF', ink: '#1A2E22', mut: '#526B5C', line: '#DCE6DF', ok: '#059669', warn: '#D97706', bad: '#DC2626' }
 };
 
 const ACC = {
@@ -97,7 +101,11 @@ const ACC = {
   Emerald: ['#047857', '#065F46', '#10B981', '#059669'],
   Sunset: ['#C2410C', '#9A3412', '#EA580C', '#EA580C'],
   Rose: ['#BE185D', '#9D174D', '#DB2777', '#DB2777'],
-  Graphite: ['#334155', '#1E293B', '#475569', '#64748B']
+  Graphite: ['#334155', '#1E293B', '#475569', '#64748B'],
+  Ruby: ['#E11D48', '#BE123C', '#9F1239', '#F43F5E'],
+  Gold: ['#D97706', '#B45309', '#92400E', '#F59E0B'],
+  Amethyst: ['#8B5CF6', '#7C3AED', '#6D28D9', '#A78BFA'],
+  Cyan: ['#0891B2', '#0E7490', '#155E75', '#06B6D4']
 };
 
 let TH = { m: 'auto', a: 'Indigo', c: 'Vivid', s: 'donut' };
@@ -1384,9 +1392,32 @@ const mv = d => {
 };
 
 // People Ledger Engine ("Who Owes Me What")
+
+function deletePerson(pid) {
+  const p = (S.people || []).find(x => x.id == pid);
+  if (!p) return;
+  if (p.balance !== 0) {
+    if (!confirm(`"${p.name}" has an active balance of ${f(p.balance)}. Remove them anyway?`)) return;
+  } else {
+    if (!confirm(`Remove settled contact "${p.name}" from your ledger?`)) return;
+  }
+  S.people = S.people.filter(x => x.id != pid);
+  save();
+  toast(`✓ Removed "${p.name}" from People Ledger`);
+}
+
+function clearAllSettledPeople() {
+  const settled = (S.people || []).filter(p => p.balance === 0);
+  if (!settled.length) return toast('No settled people to remove.');
+  if (!confirm(`Remove ${settled.length} settled ${settled.length === 1 ? 'person' : 'people'} (₹0 balance) from your ledger?`)) return;
+  S.people = S.people.filter(p => p.balance !== 0);
+  save();
+  toast(`✓ Removed ${settled.length} settled contacts`);
+}
+
 function peopleForm(o = {}) {
   form(o.id ? 'Edit Person' : 'Add Person to Ledger', [
-    { k: 'name', l: 'Person Name (e.g. Uma, Janish, Jinsha)', v: o.name },
+    { k: 'name', l: 'Person Name (e.g. Alex, Sam, Taylor)', v: o.name },
     { k: 'balance', l: 'Current Net Balance (Positive = They owe you, Negative = You owe them)', t: 'number', v: o.balance || 0 },
     { k: 'phone', l: 'Phone / Contact Info', v: o.phone || '' },
     { k: 'notes', l: 'Notes / Context', v: o.notes || '' }
@@ -1883,11 +1914,8 @@ function cards() {
       ` : `<div class=ok><b>${b.billed ? 'Paid in full' : 'Nothing due this month'}</b></div>`}
       
       <div class=row>
-        <button onclick="reconcileCardForm('${c.id}')" title="Adjust to live card balance">⚖️ Adjust Balance</button>
+        <button onclick="txForm({t:'pay',s:'${c.pa || ''}',cd:'${c.id}'})">Other payment amount</button>
         <button onclick="stmtForm('${c.id}')">Statement amounts</button>
-      </div>
-      <div style="margin-top:6px">
-        <button style="width:100%;font-size:12px;min-height:32px" onclick="txForm({t:'pay',s:'${c.pa || ''}',cd:'${c.id}'})">Other payment amount</button>
       </div>
     </div>`;
   }).join('')}
@@ -2270,10 +2298,13 @@ function plan() {
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:4px 0">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--mut)">
-          <input type="checkbox" ${V.hideSettled ? 'checked' : ''} onchange="V.hideSettled=this.checked;render()" style="width:16px;height:16px;min-height:0;margin:0">
+          <input type="checkbox" ${V.hideSettled ? 'checked' : ''} onchange="V.hideSettled=this.checked;localStorage.setItem('fintrak_hide_settled',this.checked?'1':'0');render()" style="width:16px;height:16px;min-height:0;margin:0">
           <span>Hide settled (₹0 balance)</span>
         </label>
-        <span class=m style="font-size:11px">${filteredPeople.length} of ${(S.people||[]).length} people</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${(S.people||[]).some(p => p.balance === 0) ? `<button type=button onclick="clearAllSettledPeople()" style="min-height:26px;padding:0 8px;font-size:11px;border-radius:6px;background:var(--bg);border:1px solid var(--line);color:var(--mut)">Clear Settled</button>` : ''}
+          <span class=m style="font-size:11px">${filteredPeople.length} of ${(S.people||[]).length} people</span>
+        </div>
       </div>
 
       ${filteredPeople.length ? filteredPeople.map(p => `
@@ -2292,6 +2323,7 @@ function plan() {
             <button onclick="personTxForm('${p.id}', 'lent')" style="min-height:34px;font-size:12px">+ Lend</button>
             <button onclick="personTxForm('${p.id}', 'repaid')" style="min-height:34px;font-size:12px">+ Repaid</button>
             <button onclick="peopleForm(S.people.find(x=>x.id=='${p.id}'))" style="min-height:34px;font-size:12px">Edit</button>
+            ${p.balance === 0 ? `<button onclick="deletePerson('${p.id}')" style="min-height:34px;font-size:12px;color:var(--bad)">Remove</button>` : ''}
           </div>
         </div>
       `).join('') : '<div class=m style="padding:12px 0;text-align:center">No active people matching filter. Tap + Add Person to track someone.</div>'}
@@ -2576,7 +2608,7 @@ const appear = () => `
   <h3>Appearance</h3>
   <div class=m style="margin-bottom:6px">Mode</div>
   <div class=seg>
-    ${[['auto', 'Auto'], ['light', 'Light'], ['warm', 'Warm'], ['dark', 'Dark'], ['black', 'Black']].map(([k, l]) => `<button class="${TH.m == k ? 'on' : ''}" onclick="setTheme('m','${k}')">${l}</button>`).join('')}
+    ${[['auto', 'Auto'], ['light', 'Light'], ['warm', 'Warm'], ['dark', 'Dark'], ['black', 'Black'], ['nord', 'Nord'], ['cyber', 'Cyber'], ['sage', 'Sage']].map(([k, l]) => `<button class="${TH.m == k ? 'on' : ''}" onclick="setTheme('m','${k}')">${l}</button>`).join('')}
   </div>
   <div class=m style="margin:12px 0 6px">Accent colour: ${TH.a}</div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
