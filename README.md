@@ -91,6 +91,30 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 * When deleting any transaction, a 5-second toast notification appears with an **Undo** action button to restore the entry immediately.
 
 
+
+
+### J. Account Balance Reconciliation & Outside App Adjustments
+* **The Problem It Solves**: When you are busy, traveling, or miss recording small cash/UPI transactions for days or weeks, your real bank app balance diverges from Fintrak.
+* **How It Works**:
+  * In the **Cards & Accounts** view, tap **⚖️ Adjust** next to any bank account (or tap **⚖️ Reconcile** inside the Edit Account dialog).
+  * Enter your actual live balance from your bank app or SMS (e.g. ₹42,000 when Fintrak had ₹50,000).
+  * Fintrak calculates the difference in real time:
+    * If actual < app balance: automatically logs an expense on today's date titled `Outside app spending (Balance adjustment)` for the exact difference.
+    * If actual > app balance: automatically logs an income deposit on today's date titled `Outside app income (Balance adjustment)` for the difference.
+  * In **History**, adjustment entries are permanently recorded and highlighted with a distinct badge: `[⚖️ Outside App Adjustment]`.
+  * Your bank account in Fintrak immediately matches your real-world bank balance down to the rupee without breaking past ledgers.
+
+### K. History UI Polish
+* **Top Tab Grid Icons**: Integrated clean, consistent icons matching the Plan tab: `📋 All`, `💸 Spent`, `💰 Income`, `📈 Invest`, `💳 Cards`, `⇄ Transfer`.
+* **Summary Line Non-Breaking Format**: Grouped metric labels and figures with non-breaking spans (`In: ₹...`, `Spent: ₹...`, `Invest: ₹...`) so amounts never awkwardly break across lines.
+
+### I. Decluttered Settings & Relocated Functional Hubs
+* **People Ledger**: Moved from Settings to the **Plan** tab as an equal sub-tab in a balanced 3×2 grid (`Calendar`, `Bills`, `Invest` on top; `Income`, `Goals`, `People` below), alongside a glanceable **People Ledger card on Home**. Features an automatic **Hide settled (₹0 balance)** toggle so one-off settled acquaintances never clutter active views.
+* **Bank Accounts & Transfer**: Moved from Settings directly into the **Cards** view under **Bank Accounts & Cash** (with 1-tap `+ Bank` and `⇄ Transfer` buttons), placing liquid balances alongside card liabilities.
+* **Category Budgets**: Moved from Settings directly into the **Plan (Bills)** view, placing category spending caps directly where monthly obligations are managed.
+* **Calendar Reminders Export (.ics)**: Placed as a 1-tap button directly inside the **Plan (Calendar)** and **Cards** views.
+* **Clean Minimalist Settings**: The Settings screen (`⚙️`) now hosts strictly true system configuration: App Lock PIN, Data Backups & CSV export, Theme Appearance, and Category Tidying.
+
 ### H. Paid for a Friend / Reimbursable Transactions
 * **How It Works**:
   * In the **Add / Edit Entry** form, check **🤝 Paid for a friend (Reimbursable)**.

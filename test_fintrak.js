@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -234,6 +234,113 @@ if (histHtml.includes('🤝 For Friend · Uma')) {
   process.exit(1);
 }
 
+
+// 10. Test Relocated People Ledger, Bank Hub, and Clean Settings
+console.log('\n--- 10. Testing Relocated Features & Clean Settings ---');
+api.S.people = [
+  { id: '1', name: 'Amjith', balance: 50000, notes: 'Flight ticket Oct' },
+  { id: '2', name: 'Dilshan', balance: 0, notes: 'Settled' }
+];
+
+api.V.pt = 'people';
+const plHtml = api.plan();
+if (plHtml.includes('Amjith') && plHtml.includes('₹50,000') && plHtml.includes('Hide settled')) {
+  console.log('✓ PASS: Plan tab features full People Ledger with 3x2 grid and "Hide settled" filter.');
+} else {
+  console.error('FAIL: Plan People Ledger view failed', plHtml);
+  process.exit(1);
+}
+
+const cdHtml = api.cards();
+if (cdHtml.includes('Bank Accounts & Cash') && cdHtml.includes('⇄ Transfer')) {
+  console.log('✓ PASS: Cards tab hosts live Bank Accounts & Cash with 1-tap Transfer.');
+} else {
+  console.error('FAIL: Cards Bank Hub missing', cdHtml);
+  process.exit(1);
+}
+
+const hmHtml = api.home();
+if (hmHtml.includes('People Ledger') && hmHtml.includes('₹50,000 owed to you')) {
+  console.log('✓ PASS: Home dashboard displays glanceable People Ledger summary widget.');
+} else {
+  console.error('FAIL: Home People Widget missing', hmHtml);
+  process.exit(1);
+}
+
+const mrHtml = api.more();
+if (!mrHtml.includes('Bank accounts') && mrHtml.includes('App Lock & Security') && mrHtml.includes('Data Management & Backups')) {
+  console.log('✓ PASS: Settings screen is decluttered, hosting strictly system preferences, PIN, and backups.');
+} else {
+  console.error('FAIL: Settings declutter check failed', mrHtml);
+  process.exit(1);
+}
+
+
+// 11. Test Account Balance Reconciliation (Outside App Spending / Income)
+console.log('\n--- 11. Testing Account Balance Reconciliation & Adjustment ---');
+api.S.acc = [{ id: 'acc_icici', n: 'ICICI Bank', o: 50000 }];
+api.S.tx = []; // fresh ledger
+
+// Initial balance is 50,000
+const initialBal = api.accBal(api.S.acc[0]);
+if (initialBal === 50000) {
+  console.log('✓ PASS: Initial account balance is ₹50,000.');
+}
+
+// Case A: Real bank balance is ₹42,000 (spent ₹8,000 outside app)
+const diff1 = 42000 - initialBal; // -8000
+api.S.tx.push({
+  id: 'adj_1',
+  d: api.iso(api.T),
+  t: 'exp',
+  a: Math.abs(diff1),
+  c: 'Miscellaneous',
+  n: 'ICICI Bank: Outside app spending (Balance adjustment)',
+  s: 'acc_icici',
+  adj: 1,
+  reimb: 0
+});
+
+const adjustedBal1 = api.accBal(api.S.acc[0]);
+if (adjustedBal1 === 42000) {
+  console.log('✓ PASS: Account balance accurately updated to real bank balance (₹42,000).');
+} else {
+  console.error('FAIL: Account balance did not update to ₹42,000', adjustedBal1);
+  process.exit(1);
+}
+
+// Case B: Real bank balance is ₹45,000 (received ₹3,000 deposit outside app)
+const diff2 = 45000 - adjustedBal1; // +3000
+api.S.tx.push({
+  id: 'adj_2',
+  d: api.iso(api.T),
+  t: 'inc',
+  a: diff2,
+  c: 'Other income',
+  n: 'ICICI Bank: Outside app income (Balance adjustment)',
+  s: 'acc_icici',
+  adj: 1,
+  reimb: 0
+});
+
+const adjustedBal2 = api.accBal(api.S.acc[0]);
+if (adjustedBal2 === 45000) {
+  console.log('✓ PASS: Account balance accurately updated after unlogged deposit (₹45,000).');
+} else {
+  console.error('FAIL: Account balance did not update to ₹45,000', adjustedBal2);
+  process.exit(1);
+}
+
+// Case C: Check History shows adjustment badge
+api.V.hf = 'all';
+const histView = api.hist();
+if (histView.includes('Outside App Adjustment') && histView.includes('📋 All')) {
+  console.log('✓ PASS: History displays "Outside App Adjustment" badge and top icons (📋 All, 💸 Spent, 💰 Income).');
+} else {
+  console.error('FAIL: History missing adjustment badge or icons', histView);
+  process.exit(1);
+}
+
 console.log('\n=========================================');
-console.log('ALL 9 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 11 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================\n');

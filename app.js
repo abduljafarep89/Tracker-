@@ -217,6 +217,7 @@ function getMerchantBadge(n, c, t) {
   if (/amazon|flipkart|myntra|zara|shopping|cloth|dress|ajio/i.test(s)) return { icon: '🛍️', bg: '#7C3AED' };
   if (/netflix|prime|hotstar|spotify|movie|theatre|cinema|entertainment|pvr/i.test(s)) return { icon: '🎬', bg: '#E11D48' };
   if (/uber|ola|rapido|taxi|auto|metro|transport|train|bus/i.test(s)) return { icon: '🚕', bg: '#CA8A04' };
+  if (/reconcil|adjustment|outside app/i.test(s)) return { icon: '⚖️', bg: '#D97706' };
   if (/rent|electric|kseb|bescom|water|maintenance|broadband|wifi|airtel|jio/i.test(s)) return { icon: '🏠', bg: '#2563EB' };
   if (/sip|mutual|stock|zerodha|groww|invest|kuri|ksfe|ppf|sukanya|gold/i.test(s)) return { icon: '📈', bg: '#4F46E5' };
   if (t === 'inc' || /salary|dividend|interest|cashback/i.test(s)) return { icon: '💰', bg: '#0F766E' };
@@ -692,10 +693,125 @@ function openSmsParser() {
   toast('✓ Filled amount and merchant from SMS!');
 }
 
+
+// Account Balance Reconciliation & Adjustment Engine (Outside App Spending / Income)
+function reconcileAccForm(accId) {
+  const a = S.acc.find(x => x.id == accId);
+  if (!a) return;
+  const currentBal = accBal(a);
+
+  const d = $('#dlg');
+  d.innerHTML = `
+    <div class=sheet-drag-handle onclick="dlg.close()"></div>
+    <form id="reconcileForm" style="display:flex;flex-direction:column;gap:10px">
+      <h3 style="margin:0">⚖️ Reconcile ${e(a.n)} Balance</h3>
+      <div style="padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12.5px;line-height:1.4">
+        <div class=r style="padding:0"><span>Current App Balance:</span><b style="font-size:14px">${f(currentBal)}</b></div>
+        <div class=m style="font-size:11.5px;margin-top:4px">Enter your actual balance from your bank app/SMS. Fintrak will auto-calculate unlogged spending or income and record it in History on today's date.</div>
+      </div>
+
+      <label style="font-size:12.5px;color:var(--mut);display:block">
+        Actual Live Bank Balance (₹)
+        <input type="number" step="any" inputmode="decimal" id="reconcileActualInp" value="${Math.round(currentBal)}" required style="width:100%;min-height:44px;font-size:16px;font-weight:700;margin-top:4px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)">
+      </label>
+
+      <div id="reconcileLiveDiff" style="padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:12px">
+        No difference (balance matches).
+      </div>
+
+      <label style="font-size:12.5px;color:var(--mut);display:block">
+        Adjustment Date
+        <input type="date" id="reconcileDateInp" value="${iso(T)}" style="width:100%;min-height:40px;font-size:13px;margin-top:4px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)">
+      </label>
+
+      <label style="font-size:12.5px;color:var(--mut);display:block">
+        Reason / Note
+        <input type="text" id="reconcileNoteInp" value="Outside app spending (Balance adjustment)" style="width:100%;min-height:40px;font-size:13px;margin-top:4px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)">
+      </label>
+
+      <div class=row style="margin-top:4px">
+        <button type="button" onclick="dlg.close()">Cancel</button>
+        <button type="submit" class=pri>Save Adjustment</button>
+      </div>
+    </form>
+  `;
+
+  const inp = $('#reconcileActualInp');
+  const diffBox = $('#reconcileLiveDiff');
+  const noteInp = $('#reconcileNoteInp');
+
+  function updateDiff() {
+    const act = +inp.value || 0;
+    const diff = act - currentBal;
+    if (Math.abs(diff) < 1) {
+      diffBox.innerHTML = `<span class=m>✓ Balances match (${f(act)}). No adjustment needed.</span>`;
+    } else if (diff < 0) {
+      const sp = Math.abs(diff);
+      diffBox.innerHTML = `<b class=bad>-${f(sp)} unlogged spending</b><div class=m style="font-size:11px;margin-top:2px">Will be recorded as an expense in History to bring your balance to ${f(act)}.</div>`;
+      if (noteInp && noteInp.value.includes('Outside app')) noteInp.value = 'Outside app spending (Balance adjustment)';
+    } else {
+      diffBox.innerHTML = `<b class=ok>+${f(diff)} unlogged income / deposit</b><div class=m style="font-size:11px;margin-top:2px">Will be recorded as an income entry in History to bring your balance to ${f(act)}.</div>`;
+      if (noteInp && noteInp.value.includes('Outside app')) noteInp.value = 'Outside app income (Balance adjustment)';
+    }
+  }
+
+  inp.addEventListener('input', updateDiff);
+  updateDiff();
+
+  $('#reconcileForm').onsubmit = ev => {
+    ev.preventDefault();
+    const act = +inp.value;
+    if (isNaN(act)) return no('Enter a valid balance');
+    const diff = act - currentBal;
+    if (Math.abs(diff) < 1) {
+      toast('✓ Balance matches! No adjustment recorded.');
+      d.close();
+      return;
+    }
+    const dVal = $('#reconcileDateInp').value || iso(T);
+    const nVal = $('#reconcileNoteInp').value.trim() || 'Balance adjustment';
+
+    if (diff < 0) {
+      const spendAmt = Math.abs(diff);
+      S.tx.push({
+        id: id(),
+        d: dVal,
+        t: 'exp',
+        a: spendAmt,
+        c: 'Miscellaneous',
+        n: `${a.n}: ${nVal}`,
+        s: a.id,
+        adj: 1,
+        reimb: 0
+      });
+      toast(`✓ Recorded ${f(spendAmt)} unlogged spending for ${a.n}`);
+    } else {
+      S.tx.push({
+        id: id(),
+        d: dVal,
+        t: 'inc',
+        a: diff,
+        c: 'Other income',
+        n: `${a.n}: ${nVal}`,
+        s: a.id,
+        adj: 1,
+        reimb: 0
+      });
+      toast(`✓ Recorded ${f(diff)} unlogged deposit for ${a.n}`);
+    }
+    save();
+    d.close();
+  };
+
+  d.showModal();
+  history.pushState({ t: V.t, dlg: 1 }, '');
+}
+
 function accForm(o = {}) {
   form(o.id ? 'Edit account' : 'Add bank account', [
     { k: 'n', l: 'Account name', v: o.n },
     { k: 'o', l: 'Opening balance', t: 'number', v: o.o },
+    ...(o.id ? [{ k: 'rec_btn', l: '', h: `<div style="margin:8px 0;padding:10px;border-radius:10px;background:var(--bg);border:1px dashed var(--line)"><div class=m style="font-size:12px;margin-bottom:6px">Missed logging some expenses or deposits? Adjust to your real bank balance:</div><button type=button class=pri onclick="dlg.close();reconcileAccForm('${o.id}')" style="width:100%;min-height:34px;font-size:12px">⚖️ Adjust / Reconcile Balance</button></div>` }] : []),
     { k: 'col', l: '', h: swatches(defCol(o), false, o) }
   ],
   r => {
@@ -1445,6 +1561,23 @@ function home() {
   </div>` : '';
 
   // Sinking funds
+
+  const countOwed = (S.people || []).filter(p => p.balance > 0).length;
+  const totPeopleOwedHome = sum((S.people || []).filter(p => p.balance > 0), 'balance');
+  const peopleHomeWidget = countOwed > 0 ? `
+  <div class=c onclick="V.t='plan';V.pt='people';render()" style="cursor:pointer">
+    <div class=r style="padding:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">👥</span>
+        <div>
+          <b>People Ledger</b>
+          <div class=m style="font-size:12px">${f(totPeopleOwedHome)} owed to you by ${countOwed} ${countOwed === 1 ? 'person' : 'people'}</div>
+        </div>
+      </div>
+      <button style="min-height:32px;padding:0 10px;font-size:12px;border-radius:8px">View ›</button>
+    </div>
+  </div>` : '';
+
   const totGTarget = sum(S.goals || [], 'target'), totGSaved = sum(S.goals || [], 'saved');
   const goalWidget = (S.goals && S.goals.length) ? `
   <div class=c onclick="V.t='plan';V.pt='goals';render()" style="cursor:pointer">
@@ -1527,6 +1660,7 @@ function home() {
     <div class=r style="margin-top:8px;padding:0;font-size:12px"><span class=m>Total Credit Liability:</span><b>${f(debt)}</b></div>
   </div>
 
+  ${peopleHomeWidget}
   ${goalWidget}
 
   <div class=c>
@@ -1545,9 +1679,32 @@ function cards() {
   const bf = S.cards.map(c => [c, free(c)]), best = [...bf].sort((a, b) => b[1] - a[1])[0], bl = S.cards.map(c => bill(c, V.y, V.m));
   const totLim = sum(S.cards, 'limit'), totOut = S.cards.reduce((s, c) => s + cardOut(c), 0), totAvail = Math.max(0, totLim - totOut), totUtil = totLim ? Math.round(totOut / totLim * 100) : 0, utilK = totUtil < 30 ? 'ok' : totUtil < 50 ? 'wn' : 'bad';
 
-  return `
+  const bankHub = `
   <div class=c>
-    <h3>${mo()} card bills</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">Bank Accounts & Cash</h3>
+      <div style="display:flex;gap:6px">
+        <button onclick="accForm()" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">+ Bank</button>
+        <button onclick="txForm({t:'xfer'})" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">⇄ Transfer</button>
+      </div>
+    </div>
+    ${S.acc.map(a => `
+      <div class=r onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))" style="cursor:pointer;padding:6px 0">
+        <span><i class=dot style="background:${colr(a.id)}"></i>${e(a.n)}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <b>${f(accBal(a))}</b>
+          <button type=button onclick="event.stopPropagation();reconcileAccForm('${a.id}')" style="min-height:26px;padding:0 8px;font-size:11px;border-radius:6px;background:var(--bg);border:1px solid var(--line)" title="Adjust to actual bank balance">⚖️ Adjust</button>
+        </div>
+      </div>`).join('') || '<div class=m>No bank accounts added yet.</div>'}
+  </div>`;
+
+  return `
+  ${bankHub}
+  <div class=c>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0">${mo()} card bills</h3>
+      <button onclick="exportCalendarICS()" style="min-height:28px;padding:0 8px;font-size:11px;border-radius:8px">📅 Reminders (.ics)</button>
+    </div>
     <div class=g>
       <div><div class=m>Pay this month</div><div class=big>${f(sum(bl, 'pay'))}</div></div>
       <div><div class=m>Carries to next month</div><div class=big>${f(sum(bl, 'carry'))}</div></div>
@@ -1898,7 +2055,8 @@ const KS = {
   exp: ['Bills', 'var(--warn)', 'payment'],
   inv: ['Invest', 'var(--pri)', 'investment'],
   inc: ['Income', 'var(--ok)', 'income'],
-  goals: ['Goals', 'var(--ok)', 'goal']
+  goals: ['Goals', 'var(--ok)', 'goal'],
+  people: ['People', 'var(--ok)', 'person']
 };
 const EC = { exp: 'var(--warn)', inv: 'var(--pri)', inc: 'var(--ok)', due: '#DB2777', stmt: 'var(--mut)' };
 const EL = { exp: 'Payment', inv: 'Investment', inc: 'Income', due: 'Card bill due', stmt: 'Statement date' };
@@ -1926,6 +2084,10 @@ function cal() {
 
   return `
   <div class=c>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">Monthly Schedule</h3>
+      <button onclick="exportCalendarICS()" style="min-height:30px;padding:0 8px;font-size:11px;border-radius:8px">📅 Export (.ics)</button>
+    </div>
     <div class=cal>${'SMTWTFS'.split('').map(x => `<span class=m style="text-align:center">${x}</span>`).join('')}${grid}</div>
     <div class=m style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px">${Object.keys(EL).map(x => `<span><i class=dot style="background:${EColor[x]}"></i>${EL[x]}</span>`).join('')}</div>
   </div>
@@ -1951,10 +2113,69 @@ function plan() {
     <div class="seg-row">
       <button class="${pt == 'inc' ? 'on' : ''}" onclick="V.pt='inc';render()">💰 Income</button>
       <button class="${pt == 'goals' ? 'on' : ''}" onclick="V.pt='goals';render()">🎯 Goals</button>
+      <button class="${pt == 'people' ? 'on' : ''}" onclick="V.pt='people';render()">👥 People</button>
     </div>
   </div>`;
 
   if (pt == 'cal') return SG + cal();
+
+  if (pt == 'people') {
+    const totOwed = sum((S.people || []).filter(p => p.balance > 0), 'balance');
+    const totOwe = sum((S.people || []).filter(p => p.balance < 0), 'balance');
+    const filteredPeople = (S.people || []).filter(p => !V.hideSettled || p.balance !== 0);
+
+    return SG + `
+    <div class=c>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3 style="margin:0">People Ledger ("Who Owes Me What")</h3>
+        <button class=pri onclick="peopleForm()" style="min-height:34px;padding:0 12px;font-size:12px">+ Add Person</button>
+      </div>
+      <div class=m style="font-size:12px;margin-bottom:10px">Track loans, split bills, and repayments from friends and family.</div>
+      
+      <div class=tiles style="margin-bottom:12px">
+        <div class=tile style="background:rgba(15,118,110,.14)">
+          <span class=m>Owed to You</span>
+          <b class=ok>${f(totOwed)}</b>
+        </div>
+        <div class=tile style="background:rgba(185,28,28,.14)">
+          <span class=m>You Owe</span>
+          <b class=bad>${f(Math.abs(totOwe))}</b>
+        </div>
+        <div class=tile style="background:rgba(79,70,229,.14)">
+          <span class=m>Net Balance</span>
+          <b style="color:var(--pri)">${f(totOwed + totOwe)}</b>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:4px 0">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--mut)">
+          <input type="checkbox" ${V.hideSettled ? 'checked' : ''} onchange="V.hideSettled=this.checked;render()" style="width:16px;height:16px;min-height:0;margin:0">
+          <span>Hide settled (₹0 balance)</span>
+        </label>
+        <span class=m style="font-size:11px">${filteredPeople.length} of ${(S.people||[]).length} people</span>
+      </div>
+
+      ${filteredPeople.length ? filteredPeople.map(p => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+          <div class=r style="padding:0">
+            <div>
+              <b>${e(p.name)}</b>
+              ${p.phone ? `<span class=m style="font-size:11px"> · ${e(p.phone)}</span>` : ''}
+              ${p.notes ? `<div class=m style="font-size:11px">${e(p.notes)}</div>` : ''}
+            </div>
+            <div style="text-align:right">
+              <b style="color:${p.balance > 0 ? 'var(--ok)' : p.balance < 0 ? 'var(--bad)' : 'var(--mut)'}">${p.balance > 0 ? 'Owes you ' + f(p.balance) : p.balance < 0 ? 'You owe ' + f(Math.abs(p.balance)) : '✓ Settled'}</b>
+            </div>
+          </div>
+          <div class=row style="margin-top:8px">
+            <button onclick="personTxForm('${p.id}', 'lent')" style="min-height:34px;font-size:12px">+ Lend</button>
+            <button onclick="personTxForm('${p.id}', 'repaid')" style="min-height:34px;font-size:12px">+ Repaid</button>
+            <button onclick="peopleForm(S.people.find(x=>x.id=='${p.id}'))" style="min-height:34px;font-size:12px">Edit</button>
+          </div>
+        </div>
+      `).join('') : '<div class=m style="padding:12px 0;text-align:center">No active people matching filter. Tap + Add Person to track someone.</div>'}
+    </div>`;
+  }
 
   if (pt == 'goals') {
     return SG + `
@@ -1982,6 +2203,23 @@ function plan() {
     </div>`;
   }
 
+  const catBudgetsCard = `
+  <div class=c>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0">Category Monthly Budgets</h3>
+      <button onclick="catBudgetForm()" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px">Edit Limits</button>
+    </div>
+    <div class=m style="font-size:12px;margin-bottom:8px">Track actual monthly burn against category spending limits.</div>
+    ${Object.keys(S.catBudgets).length ? Object.entries(S.catBudgets).map(([cat, lim]) => {
+      const sp = sum(mt().filter(t => !t.adj && t.t == 'exp' && !t.reimb && (t.c || '') === cat));
+      const p = Math.min(100, Math.round((sp / lim) * 100));
+      return `
+      <div style="margin-bottom:8px">
+        <div class=r style="padding:0;font-size:12px"><span>${e(cat)}</span><b>${f(sp)} / ${f(lim)} (${p}%)</b></div>
+        ${bar(p, p >= 100 ? 'var(--bad)' : p >= 80 ? 'var(--warn)' : 'var(--ok)')}
+      </div>`;
+    }).join('') : '<div class=m>No category budgets configured yet. Tap Edit Limits to set caps for Fuel, Food, Groceries, etc.</div>'}
+  </div>`;
   const d = p => S.paid[p.id + '|' + k];
   const L = PL(k).filter(p => p.k == pt).sort((a, b) => (!!a.end - !!b.end) || a.day - b.day);
   const tot = sum(L.map(p => ({ a: pamt(p) })));
@@ -2010,6 +2248,7 @@ function plan() {
     `).join('') || '<div class=m>Nothing planned yet.</div>'}
     <button class=add onclick="planForm({k:'${pt}'})">+ Add ${KS[pt][2]}</button>
   </div>
+  ${catBudgetsCard}
   ${pt == 'exp' && bl.length ? `
   <div class=c>
     <h3>Credit card bills due</h3>
@@ -2026,7 +2265,7 @@ function hist() {
   const dFrom = V.dateFrom || '';
   const dTo = V.dateTo || '';
 
-  const A = S.tx.filter(t => !t.adj);
+  const A = S.tx.filter(t => t.c !== "Card balance");
   const L = A.filter(t => {
     if (fl != 'all' && t.t != fl) return false;
     if (cf && (t.c || '') !== cf) return false;
@@ -2056,30 +2295,30 @@ function hist() {
     const totIn = sum(L.filter(t => t.t == 'inc'));
     const totExp = sum(L.filter(t => t.t == 'exp'));
     const totInv = sum(L.filter(t => t.t == 'inv'));
-    summaryText = `${L.length} entries${searchPrefix} · In: <b>${f(totIn)}</b> · Spent: <b>${f(totExp)}</b> · Invest: <b>${f(totInv)}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">In: <b>${f(totIn)}</b></span> · <span style="white-space:nowrap">Spent: <b>${f(totExp)}</b></span> · <span style="white-space:nowrap">Invest: <b>${f(totInv)}</b></span>`;
   } else if (fl === 'exp') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Spent: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Spent: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'inc') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Income: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Income: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'inv') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Invested: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Invested: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'pay') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Card Payments: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Card Payments: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'xfer') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Transferred: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Transferred: <b>${f(sum(L))}</b></span>`;
   }
 
   return `
   <div class="seg-grid">
     <div class="seg-row">
-      <button class="${fl == 'all' ? 'on' : ''}" onclick="V.hf='all';render()">All</button>
-      <button class="${fl == 'exp' ? 'on' : ''}" onclick="V.hf='exp';render()">Spent</button>
-      <button class="${fl == 'inc' ? 'on' : ''}" onclick="V.hf='inc';render()">Income</button>
+      <button class="${fl == 'all' ? 'on' : ''}" onclick="V.hf='all';render()">📋 All</button>
+      <button class="${fl == 'exp' ? 'on' : ''}" onclick="V.hf='exp';render()">💸 Spent</button>
+      <button class="${fl == 'inc' ? 'on' : ''}" onclick="V.hf='inc';render()">💰 Income</button>
     </div>
     <div class="seg-row">
-      <button class="${fl == 'inv' ? 'on' : ''}" onclick="V.hf='inv';render()">Invest</button>
-      <button class="${fl == 'pay' ? 'on' : ''}" onclick="V.hf='pay';render()">Cards</button>
-      <button class="${fl == 'xfer' ? 'on' : ''}" onclick="V.hf='xfer';render()">Transfer</button>
+      <button class="${fl == 'inv' ? 'on' : ''}" onclick="V.hf='inv';render()">📈 Invest</button>
+      <button class="${fl == 'pay' ? 'on' : ''}" onclick="V.hf='pay';render()">💳 Cards</button>
+      <button class="${fl == 'xfer' ? 'on' : ''}" onclick="V.hf='xfer';render()">⇄ Transfer</button>
     </div>
   </div>
 
@@ -2088,9 +2327,9 @@ function hist() {
     ${V.sq ? `<button onclick="V.sq='';render()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--mut);min-height:30px;padding:0 8px;font-size:16px;">✕</button>` : ''}
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-    <span class=m style="padding:0 4px">${summaryText}</span>
-    <button type=button onclick="V.showDateFilter=!V.showDateFilter;render()" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px;background:${(V.dateFrom || V.dateTo) ? 'color-mix(in srgb,var(--pri) 15%,var(--card))' : 'var(--card)'};border:1px solid ${(V.dateFrom || V.dateTo) ? 'var(--pri)' : 'var(--line)'};display:flex;align-items:center;gap:4px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
+    <div class=m style="padding:0 2px;font-size:12px;line-height:1.5;flex:1">${summaryText}</div>
+    <button type=button onclick="V.showDateFilter=!V.showDateFilter;render()" style="min-height:28px;padding:0 8px;font-size:11px;border-radius:8px;background:${(V.dateFrom || V.dateTo) ? 'color-mix(in srgb,var(--pri) 15%,var(--card))' : 'var(--card)'};border:1px solid ${(V.dateFrom || V.dateTo) ? 'var(--pri)' : 'var(--line)'};display:flex;align-items:center;gap:4px;white-space:nowrap;flex:none">
       📅 ${(V.dateFrom || V.dateTo) ? 'Dates Active' : 'Filter Date'}
     </button>
   </div>
@@ -2140,6 +2379,7 @@ function hist() {
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                 <b>${e(t.n || t.c || 'Entry')}</b>
                 ${t.reimb ? `<span class="badge-countdown" style="background:color-mix(in srgb,var(--pri) 15%,transparent);color:var(--pri)">🤝 For Friend${t.reimb_pid ? ' · ' + e(((S.people||[]).find(p=>p.id==t.reimb_pid)||{}).name || '') : ''}</span>` : ''}
+                ${(t.adj && !t.reimb) ? `<span class="badge-countdown" style="background:rgba(217,119,6,0.15);color:var(--warn)">⚖️ Outside App Adjustment</span>` : ''}
               </div>
               <div class=m>${e(t.t == 'pay' ? 'Card payment' : t.t == 'xfer' ? 'Transfer' : t.c || 'Uncategorised')} · ${chip(t.s)}${t.t == 'pay' ? ' → ' + chip(t.cd) : t.t == 'xfer' ? ' → ' + chip(t.to) : ''}</div>
             </div>
@@ -2153,88 +2393,33 @@ function hist() {
 }
 
 function more() {
-  const totPeopleOwed = sum((S.people || []).filter(p => p.balance > 0), 'balance');
-  const totPeopleOwe = sum((S.people || []).filter(p => p.balance < 0), 'balance');
-
   return `
   <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="margin:0">Bank accounts</h3>
-      <button class=pri onclick="accForm()" style="min-height:34px;padding:0 12px;font-size:12px">+ Add Bank</button>
-    </div>
-    ${S.acc.map(a => `<div class=r onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))"><span><i class=dot style="background:${colr(a.id)}"></i>${e(a.n)}</span><b>${f(accBal(a))}</b></div>`).join('') || '<div class=m>No accounts yet.</div>'}
-    <button style="width:100%;margin-top:8px" onclick="txForm({t:'xfer'})">Transfer between accounts</button>
-  </div>
-
-  <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="margin:0">People Ledger ("Who Owes Me What")</h3>
-      <button class=pri onclick="peopleForm()" style="min-height:34px;padding:0 12px;font-size:12px">+ Add Person</button>
-    </div>
-    <div class=m style="font-size:12px;margin-bottom:10px">Track loans, split bills, and repayments from friends and family.</div>
-    ${(S.people && S.people.length) ? S.people.map(p => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--line)">
-        <div class=r style="padding:0">
-          <div><b>${e(p.name)}</b>${p.phone ? `<div class=m style="font-size:11px">${e(p.phone)}</div>` : ''}</div>
-          <div style="text-align:right">
-            <b style="color:${p.balance > 0 ? 'var(--ok)' : p.balance < 0 ? 'var(--bad)' : 'var(--mut)'}">${p.balance > 0 ? 'Owes you ' + f(p.balance) : p.balance < 0 ? 'You owe ' + f(Math.abs(p.balance)) : 'Settled'}</b>
-          </div>
-        </div>
-        <div class=row style="margin-top:6px">
-          <button onclick="personTxForm('${p.id}', 'lent')" style="min-height:32px;font-size:11.5px">+ Lend</button>
-          <button onclick="personTxForm('${p.id}', 'repaid')" style="min-height:32px;font-size:11.5px">+ Repaid</button>
-          <button onclick="peopleForm(S.people.find(x=>x.id=='${p.id}'))" style="min-height:32px;font-size:11.5px">Edit</button>
-        </div>
-      </div>
-    `).join('') : '<div class=m>No people added yet. Keep track of hand loans and repayments here.</div>'}
-    ${totPeopleOwed ? `<div class=r style="margin-top:8px;font-size:12px"><span>Total Owed to You:</span><b class=ok>${f(totPeopleOwed)}</b></div>` : ''}
-  </div>
-
-  <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="margin:0">Category Budgets</h3>
-      <button onclick="catBudgetForm()" style="min-height:34px;padding:0 12px;font-size:12px">Edit Limits</button>
-    </div>
-    <div class=m style="font-size:12px;margin-bottom:8px">Configure individual monthly caps per spending category.</div>
-    ${Object.keys(S.catBudgets).length ? Object.entries(S.catBudgets).map(([cat, lim]) => {
-      const sp = sum(mt().filter(t => !t.adj && t.t == 'exp' && !t.reimb && (t.c || '') === cat));
-      const p = Math.min(100, Math.round((sp / lim) * 100));
-      return `
-      <div style="margin-bottom:8px">
-        <div class=r style="padding:0;font-size:12px"><span>${e(cat)}</span><b>${f(sp)} / ${f(lim)} (${p}%)</b></div>
-        ${bar(p, p >= 100 ? 'var(--bad)' : p >= 80 ? 'var(--warn)' : 'var(--ok)')}
-      </div>`;
-    }).join('') : '<div class=m>No category budgets set. Tap Edit Limits to configure.</div>'}
-  </div>
-
-  <div class=c>
-    <h3>Tools & Schedule Reminders</h3>
-    <button style="width:100%;margin-bottom:8px" onclick="exportCalendarICS()">📅 Export Card Bills to Calendar (.ics)</button>
-    <button style="width:100%" onclick="openSmsParser()">📋 Parse Bank SMS / UPI Transaction</button>
-  </div>
-
-  <div class=c>
-    <h3>Settings & Backups</h3>
+    <h3 style="margin-bottom:8px">App Preferences</h3>
     <div class=r><span>Total Monthly Budget</span><b>${f(S.budget)}</b></div>
     <button style="width:100%" onclick="budForm()">Set overall monthly budget</button>
     <button style="width:100%;margin-top:8px" onclick="tidy()">Tidy old categories</button>
     <button style="width:100%;margin-top:8px" onclick="S.est=!S.est;save()">Include everyday spending estimate in forecast: ${S.est ? 'On' : 'Off'}</button>
-    
-    <div style="margin-top:10px;padding:10px;border-radius:12px;background:var(--bg)">
-      <div class=r style="padding:0;margin-bottom:6px">
-        <span><b>Security / App Lock:</b></span>
-        <span class="${S.pin ? 'ok' : 'm'}">${S.pin ? 'PIN Active' : 'Disabled'}</span>
-      </div>
-      <button style="width:100%;min-height:36px;font-size:12px" onclick="pinSettingsForm()">${S.pin ? 'Change or Remove PIN' : 'Set 4-Digit Security PIN'}</button>
-    </div>
+  </div>
 
-    <div class=row style="margin-top:10px">
+  <div class=c>
+    <h3 style="margin-bottom:8px">App Lock & Security</h3>
+    <div class=r style="padding:0;margin-bottom:6px">
+      <span><b>PIN Security Lock:</b></span>
+      <span class="${S.pin ? 'ok' : 'm'}">${S.pin ? '4-Digit PIN Active' : 'Disabled'}</span>
+    </div>
+    <button style="width:100%;min-height:38px;font-size:13px" onclick="pinSettingsForm()">${S.pin ? 'Change or Remove Security PIN' : 'Set 4-Digit Security PIN'}</button>
+  </div>
+
+  <div class=c>
+    <h3 style="margin-bottom:8px">Data Management & Backups</h3>
+    <div class=row>
       <button onclick="bk(false)">Export / Share Backup</button>
       <button onclick="imp.click()">Import Backup</button>
     </div>
     <button style="width:100%;margin-top:8px" onclick="expCsv()">📊 Export all transactions to CSV (Excel)</button>
     <input type=file id=imp accept=.json hidden onchange="ld(this)">
-    <div class=m style="font-size:11px;margin-top:6px">Last backup: ${localStorage.getItem('fintrak_last_backup') || 'Never'}</div>
+    <div class=m style="font-size:11px;margin-top:8px">Last backup: ${localStorage.getItem('fintrak_last_backup') || 'Never'}</div>
   </div>
 
   ${appear()}
@@ -2245,7 +2430,6 @@ function more() {
   </div>
   `;
 }
-
 function pinSettingsForm() {
   if (S.pin) {
     if (confirm('A security PIN is currently active. Do you want to remove it? (Cancel to change PIN)')) {

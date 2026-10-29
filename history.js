@@ -13,17 +13,17 @@ function renderHistoryComponent(S, V, L, G, sq, fl, fsp) {
     const totIn = sum(L.filter(t => t.t == 'inc'));
     const totExp = sum(L.filter(t => t.t == 'exp'));
     const totInv = sum(L.filter(t => t.t == 'inv'));
-    summaryText = `${L.length} entries${searchPrefix} · In: <b>${f(totIn)}</b> · Spent: <b>${f(totExp)}</b> · Invest: <b>${f(totInv)}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">In: <b>${f(totIn)}</b></span> · <span style="white-space:nowrap">Spent: <b>${f(totExp)}</b></span> · <span style="white-space:nowrap">Invest: <b>${f(totInv)}</b></span>`;
   } else if (fl === 'exp') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Spent: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Spent: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'inc') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Income: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Income: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'inv') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Invested: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Invested: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'pay') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Card Payments: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Card Payments: <b>${f(sum(L))}</b></span>`;
   } else if (fl === 'xfer') {
-    summaryText = `${L.length} entries${searchPrefix} · Total Transferred: <b>${f(sum(L))}</b>`;
+    summaryText = `<span style="white-space:nowrap">${L.length} entries${searchPrefix}</span> · <span style="white-space:nowrap">Total Transferred: <b>${f(sum(L))}</b></span>`;
   }
 
   return { summaryText };
