@@ -1,4 +1,4 @@
-const C = 'fintrak-v26';
+const C = 'fintrak-v27';
 const F = [
   './',
   'index.html',

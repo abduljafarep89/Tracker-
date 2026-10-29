@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, more, V, iso, T, togglePriv })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -160,6 +160,43 @@ if (moreHtml.includes('People Ledger') && moreHtml.includes('Category Budgets'))
   console.log('✓ PASS: more() rendered successfully with People Ledger and Category Budgets.');
 }
 
+
+// 8. Test History Contextual Summaries
+console.log('\n--- 8. Testing History Contextual Tab Summaries ---');
+api.S.tx = [
+  { id: '1', d: api.iso(api.T), t: 'exp', a: 1500, c: 'Fuel', n: 'Petrol', s: 'bank1' },
+  { id: '2', d: api.iso(api.T), t: 'exp', a: 500, c: 'Groceries', n: 'Milk', s: 'bank1' },
+  { id: '3', d: api.iso(api.T), t: 'inc', a: 34460, c: 'Salary', n: 'Income', s: 'bank1' },
+  { id: '4', d: api.iso(api.T), t: 'xfer', a: 1000, c: 'Transfer', n: 'Transfer', s: 'bank1', to: 'bank2' }
+];
+
+api.V.hf = 'all';
+const hAll = api.hist();
+if (hAll.includes('In:') && hAll.includes('Spent:') && hAll.includes('₹34,460') && hAll.includes('₹2,000')) {
+  console.log('✓ PASS: All tab displays complete entry breakdown (In, Spent, Invest).');
+} else {
+  console.error('FAIL: All tab summary line incorrect', hAll);
+  process.exit(1);
+}
+
+api.V.hf = 'inc';
+const hInc = api.hist();
+if (hInc.includes('Total Income:') && hInc.includes('₹34,460') && !hInc.includes('Spent:')) {
+  console.log('✓ PASS: Income tab shows Total Income with sum (never shows false "Spent: ₹0").');
+} else {
+  console.error('FAIL: Income tab summary line incorrect', hInc);
+  process.exit(1);
+}
+
+api.V.hf = 'xfer';
+const hXfer = api.hist();
+if (hXfer.includes('Total Transferred:') && hXfer.includes('₹1,000') && !hXfer.includes('Spent:')) {
+  console.log('✓ PASS: Transfer tab shows Total Transferred with sum.');
+} else {
+  console.error('FAIL: Transfer tab summary line incorrect', hXfer);
+  process.exit(1);
+}
+
 console.log('\n=========================================');
-console.log('ALL 7 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 8 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================\n');

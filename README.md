@@ -95,3 +95,19 @@ To verify all calculations and features locally using Node.js:
 node test_fintrak.js
 ```
 All 7 automated test suites should pass with zero errors.
+
+
+---
+
+## 5. UI/UX Resolution: 2-Row Segmented Grid & Zero-Overflow Architecture
+
+* **Elimination of Horizontal Tab Overflow**:
+  * In the **Plan** view: Replaced the single overflowing horizontal row with a structured 2-row segmented grid:
+    * Row 1 (3 equal buttons, 33.3% width each):   
+    * Row 2 (2 equal buttons, 50% width each):  
+  * In the **History** view: Replaced the 6 overflowing filter pills with a balanced 2-row segmented grid:
+    * Row 1 (3 equal buttons, 33.3% width each):   
+    * Row 2 (3 equal buttons, 33.3% width each):   
+* **Permanent Zoom Stabilization**:
+  * Because every row is constrained to  with , horizontal overflow across the entire application is 0px.
+  * Mobile viewports on Android (Chrome/Vivo/Samsung) and iOS (Safari) no longer trigger auto-rescaling or zoom-out when navigating between tabs.

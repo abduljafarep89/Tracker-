@@ -2002,8 +2002,25 @@ function hist() {
   const G = {};
   L.forEach(t => (G[t.d] = G[t.d] || []).push(t));
 
-  const F = [['all', 'All'], ['exp', 'Spent'], ['inc', 'Income'], ['inv', 'Invest'], ['pay', 'Cards'], ['xfer', 'Transfer']];
-  const fsp = sum(L.filter(t => t.t == 'exp'));
+  // Dynamic contextual summary header based on selected tab and filters
+  let summaryText = '';
+  const searchPrefix = sq ? ` matching "${e(V.sq)}"` : '';
+  if (fl === 'all') {
+    const totIn = sum(L.filter(t => t.t == 'inc'));
+    const totExp = sum(L.filter(t => t.t == 'exp'));
+    const totInv = sum(L.filter(t => t.t == 'inv'));
+    summaryText = `${L.length} entries${searchPrefix} · In: <b>${f(totIn)}</b> · Spent: <b>${f(totExp)}</b> · Invest: <b>${f(totInv)}</b>`;
+  } else if (fl === 'exp') {
+    summaryText = `${L.length} entries${searchPrefix} · Total Spent: <b>${f(sum(L))}</b>`;
+  } else if (fl === 'inc') {
+    summaryText = `${L.length} entries${searchPrefix} · Total Income: <b>${f(sum(L))}</b>`;
+  } else if (fl === 'inv') {
+    summaryText = `${L.length} entries${searchPrefix} · Total Invested: <b>${f(sum(L))}</b>`;
+  } else if (fl === 'pay') {
+    summaryText = `${L.length} entries${searchPrefix} · Total Card Payments: <b>${f(sum(L))}</b>`;
+  } else if (fl === 'xfer') {
+    summaryText = `${L.length} entries${searchPrefix} · Total Transferred: <b>${f(sum(L))}</b>`;
+  }
 
   return `
   <div class="seg-grid">
@@ -2025,7 +2042,7 @@ function hist() {
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-    <span class=m style="padding:0 4px">${L.length} entries · Spent: <b>${f(fsp)}</b></span>
+    <span class=m style="padding:0 4px">${summaryText}</span>
     <button type=button onclick="V.showDateFilter=!V.showDateFilter;render()" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px;background:${(V.dateFrom || V.dateTo) ? 'color-mix(in srgb,var(--pri) 15%,var(--card))' : 'var(--card)'};border:1px solid ${(V.dateFrom || V.dateTo) ? 'var(--pri)' : 'var(--line)'};display:flex;align-items:center;gap:4px">
       📅 ${(V.dateFrom || V.dateTo) ? 'Dates Active' : 'Filter Date'}
     </button>
@@ -2040,12 +2057,31 @@ function hist() {
   </div>` : ''}
 
   ${Object.keys(G).map(d => {
-    const x = G[d], sp = sum(x.filter(t => t.t == 'exp'));
+    const x = G[d];
+    let daySummary = '';
+    if (fl === 'all') {
+      const sp = sum(x.filter(t => t.t == 'exp'));
+      const incDay = sum(x.filter(t => t.t == 'inc'));
+      if (sp && incDay) daySummary = `Spent ${f(sp)} · In +${f(incDay)}`;
+      else if (sp) daySummary = `Spent ${f(sp)}`;
+      else if (incDay) daySummary = `+${f(incDay)}`;
+    } else if (fl === 'exp') {
+      daySummary = `Spent ${f(sum(x))}`;
+    } else if (fl === 'inc') {
+      daySummary = `+${f(sum(x))}`;
+    } else if (fl === 'inv') {
+      daySummary = `Invested ${f(sum(x))}`;
+    } else if (fl === 'pay') {
+      daySummary = `Paid ${f(sum(x))}`;
+    } else if (fl === 'xfer') {
+      daySummary = `Transferred ${f(sum(x))}`;
+    }
+
     return `
     <div>
       <div class=r style="padding:2px 4px">
         <b style="font-size:13px">${new Date(d + 'T00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</b>
-        <span class=m>${sp ? 'Spent ' + f(sp) : ''}</span>
+        <span class=m>${daySummary}</span>
       </div>
       <div class=c style="padding:4px 14px">
         ${x.map(t => {
@@ -2066,7 +2102,6 @@ function hist() {
   `;
 }
 
-// 6. MORE / SETTINGS TAB (Unified, People Ledger, Budgets, Pin Lock, Share)
 function more() {
   const totPeopleOwed = sum((S.people || []).filter(p => p.balance > 0), 'balance');
   const totPeopleOwe = sum((S.people || []).filter(p => p.balance < 0), 'balance');
