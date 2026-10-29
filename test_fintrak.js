@@ -234,6 +234,47 @@ if (histHtml.includes('🤝 For Friend · Uma')) {
   process.exit(1);
 }
 
+
+// 10. Test Relocated People Ledger, Bank Hub, and Clean Settings
+console.log('\n--- 10. Testing Relocated Features & Clean Settings ---');
+api.S.people = [
+  { id: '1', name: 'Amjith', balance: 50000, notes: 'Flight ticket Oct' },
+  { id: '2', name: 'Dilshan', balance: 0, notes: 'Settled' }
+];
+
+api.V.pt = 'people';
+const plHtml = api.plan();
+if (plHtml.includes('Amjith') && plHtml.includes('₹50,000') && plHtml.includes('Hide settled')) {
+  console.log('✓ PASS: Plan tab features full People Ledger with 3x2 grid and "Hide settled" filter.');
+} else {
+  console.error('FAIL: Plan People Ledger view failed', plHtml);
+  process.exit(1);
+}
+
+const cdHtml = api.cards();
+if (cdHtml.includes('Bank Accounts & Cash') && cdHtml.includes('⇄ Transfer')) {
+  console.log('✓ PASS: Cards tab hosts live Bank Accounts & Cash with 1-tap Transfer.');
+} else {
+  console.error('FAIL: Cards Bank Hub missing', cdHtml);
+  process.exit(1);
+}
+
+const hmHtml = api.home();
+if (hmHtml.includes('People Ledger') && hmHtml.includes('₹50,000 owed to you')) {
+  console.log('✓ PASS: Home dashboard displays glanceable People Ledger summary widget.');
+} else {
+  console.error('FAIL: Home People Widget missing', hmHtml);
+  process.exit(1);
+}
+
+const mrHtml = api.more();
+if (!mrHtml.includes('Bank accounts') && mrHtml.includes('App Lock & Security') && mrHtml.includes('Data Management & Backups')) {
+  console.log('✓ PASS: Settings screen is decluttered, hosting strictly system preferences, PIN, and backups.');
+} else {
+  console.error('FAIL: Settings declutter check failed', mrHtml);
+  process.exit(1);
+}
+
 console.log('\n=========================================');
-console.log('ALL 9 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 10 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================\n');

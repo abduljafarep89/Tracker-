@@ -91,6 +91,14 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 * When deleting any transaction, a 5-second toast notification appears with an **Undo** action button to restore the entry immediately.
 
 
+
+### I. Decluttered Settings & Relocated Functional Hubs
+* **People Ledger**: Moved from Settings to the **Plan** tab as an equal sub-tab in a balanced 3×2 grid (`Calendar`, `Bills`, `Invest` on top; `Income`, `Goals`, `People` below), alongside a glanceable **People Ledger card on Home**. Features an automatic **Hide settled (₹0 balance)** toggle so one-off settled acquaintances never clutter active views.
+* **Bank Accounts & Transfer**: Moved from Settings directly into the **Cards** view under **Bank Accounts & Cash** (with 1-tap `+ Bank` and `⇄ Transfer` buttons), placing liquid balances alongside card liabilities.
+* **Category Budgets**: Moved from Settings directly into the **Plan (Bills)** view, placing category spending caps directly where monthly obligations are managed.
+* **Calendar Reminders Export (.ics)**: Placed as a 1-tap button directly inside the **Plan (Calendar)** and **Cards** views.
+* **Clean Minimalist Settings**: The Settings screen (`⚙️`) now hosts strictly true system configuration: App Lock PIN, Data Backups & CSV export, Theme Appearance, and Category Tidying.
+
 ### H. Paid for a Friend / Reimbursable Transactions
 * **How It Works**:
   * In the **Add / Edit Entry** form, check **🤝 Paid for a friend (Reimbursable)**.

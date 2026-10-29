@@ -1445,6 +1445,23 @@ function home() {
   </div>` : '';
 
   // Sinking funds
+
+  const countOwed = (S.people || []).filter(p => p.balance > 0).length;
+  const totPeopleOwedHome = sum((S.people || []).filter(p => p.balance > 0), 'balance');
+  const peopleHomeWidget = countOwed > 0 ? `
+  <div class=c onclick="V.t='plan';V.pt='people';render()" style="cursor:pointer">
+    <div class=r style="padding:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">👥</span>
+        <div>
+          <b>People Ledger</b>
+          <div class=m style="font-size:12px">${f(totPeopleOwedHome)} owed to you by ${countOwed} ${countOwed === 1 ? 'person' : 'people'}</div>
+        </div>
+      </div>
+      <button style="min-height:32px;padding:0 10px;font-size:12px;border-radius:8px">View ›</button>
+    </div>
+  </div>` : '';
+
   const totGTarget = sum(S.goals || [], 'target'), totGSaved = sum(S.goals || [], 'saved');
   const goalWidget = (S.goals && S.goals.length) ? `
   <div class=c onclick="V.t='plan';V.pt='goals';render()" style="cursor:pointer">
@@ -1527,6 +1544,7 @@ function home() {
     <div class=r style="margin-top:8px;padding:0;font-size:12px"><span class=m>Total Credit Liability:</span><b>${f(debt)}</b></div>
   </div>
 
+  ${peopleHomeWidget}
   ${goalWidget}
 
   <div class=c>
@@ -1545,9 +1563,25 @@ function cards() {
   const bf = S.cards.map(c => [c, free(c)]), best = [...bf].sort((a, b) => b[1] - a[1])[0], bl = S.cards.map(c => bill(c, V.y, V.m));
   const totLim = sum(S.cards, 'limit'), totOut = S.cards.reduce((s, c) => s + cardOut(c), 0), totAvail = Math.max(0, totLim - totOut), totUtil = totLim ? Math.round(totOut / totLim * 100) : 0, utilK = totUtil < 30 ? 'ok' : totUtil < 50 ? 'wn' : 'bad';
 
-  return `
+  const bankHub = `
   <div class=c>
-    <h3>${mo()} card bills</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">Bank Accounts & Cash</h3>
+      <div style="display:flex;gap:6px">
+        <button onclick="accForm()" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">+ Bank</button>
+        <button onclick="txForm({t:'xfer'})" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">⇄ Transfer</button>
+      </div>
+    </div>
+    ${S.acc.map(a => `<div class=r onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))" style="cursor:pointer;padding:4px 0"><span><i class=dot style="background:${colr(a.id)}"></i>${e(a.n)}</span><b>${f(accBal(a))}</b></div>`).join('') || '<div class=m>No bank accounts added yet.</div>'}
+  </div>`;
+
+  return `
+  ${bankHub}
+  <div class=c>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0">${mo()} card bills</h3>
+      <button onclick="exportCalendarICS()" style="min-height:28px;padding:0 8px;font-size:11px;border-radius:8px">📅 Reminders (.ics)</button>
+    </div>
     <div class=g>
       <div><div class=m>Pay this month</div><div class=big>${f(sum(bl, 'pay'))}</div></div>
       <div><div class=m>Carries to next month</div><div class=big>${f(sum(bl, 'carry'))}</div></div>
@@ -1898,7 +1932,8 @@ const KS = {
   exp: ['Bills', 'var(--warn)', 'payment'],
   inv: ['Invest', 'var(--pri)', 'investment'],
   inc: ['Income', 'var(--ok)', 'income'],
-  goals: ['Goals', 'var(--ok)', 'goal']
+  goals: ['Goals', 'var(--ok)', 'goal'],
+  people: ['People', 'var(--ok)', 'person']
 };
 const EC = { exp: 'var(--warn)', inv: 'var(--pri)', inc: 'var(--ok)', due: '#DB2777', stmt: 'var(--mut)' };
 const EL = { exp: 'Payment', inv: 'Investment', inc: 'Income', due: 'Card bill due', stmt: 'Statement date' };
@@ -1926,6 +1961,10 @@ function cal() {
 
   return `
   <div class=c>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">Monthly Schedule</h3>
+      <button onclick="exportCalendarICS()" style="min-height:30px;padding:0 8px;font-size:11px;border-radius:8px">📅 Export (.ics)</button>
+    </div>
     <div class=cal>${'SMTWTFS'.split('').map(x => `<span class=m style="text-align:center">${x}</span>`).join('')}${grid}</div>
     <div class=m style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px">${Object.keys(EL).map(x => `<span><i class=dot style="background:${EColor[x]}"></i>${EL[x]}</span>`).join('')}</div>
   </div>
@@ -1951,10 +1990,69 @@ function plan() {
     <div class="seg-row">
       <button class="${pt == 'inc' ? 'on' : ''}" onclick="V.pt='inc';render()">💰 Income</button>
       <button class="${pt == 'goals' ? 'on' : ''}" onclick="V.pt='goals';render()">🎯 Goals</button>
+      <button class="${pt == 'people' ? 'on' : ''}" onclick="V.pt='people';render()">👥 People</button>
     </div>
   </div>`;
 
   if (pt == 'cal') return SG + cal();
+
+  if (pt == 'people') {
+    const totOwed = sum((S.people || []).filter(p => p.balance > 0), 'balance');
+    const totOwe = sum((S.people || []).filter(p => p.balance < 0), 'balance');
+    const filteredPeople = (S.people || []).filter(p => !V.hideSettled || p.balance !== 0);
+
+    return SG + `
+    <div class=c>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3 style="margin:0">People Ledger ("Who Owes Me What")</h3>
+        <button class=pri onclick="peopleForm()" style="min-height:34px;padding:0 12px;font-size:12px">+ Add Person</button>
+      </div>
+      <div class=m style="font-size:12px;margin-bottom:10px">Track loans, split bills, and repayments from friends and family.</div>
+      
+      <div class=tiles style="margin-bottom:12px">
+        <div class=tile style="background:rgba(15,118,110,.14)">
+          <span class=m>Owed to You</span>
+          <b class=ok>${f(totOwed)}</b>
+        </div>
+        <div class=tile style="background:rgba(185,28,28,.14)">
+          <span class=m>You Owe</span>
+          <b class=bad>${f(Math.abs(totOwe))}</b>
+        </div>
+        <div class=tile style="background:rgba(79,70,229,.14)">
+          <span class=m>Net Balance</span>
+          <b style="color:var(--pri)">${f(totOwed + totOwe)}</b>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:4px 0">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;color:var(--mut)">
+          <input type="checkbox" ${V.hideSettled ? 'checked' : ''} onchange="V.hideSettled=this.checked;render()" style="width:16px;height:16px;min-height:0;margin:0">
+          <span>Hide settled (₹0 balance)</span>
+        </label>
+        <span class=m style="font-size:11px">${filteredPeople.length} of ${(S.people||[]).length} people</span>
+      </div>
+
+      ${filteredPeople.length ? filteredPeople.map(p => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+          <div class=r style="padding:0">
+            <div>
+              <b>${e(p.name)}</b>
+              ${p.phone ? `<span class=m style="font-size:11px"> · ${e(p.phone)}</span>` : ''}
+              ${p.notes ? `<div class=m style="font-size:11px">${e(p.notes)}</div>` : ''}
+            </div>
+            <div style="text-align:right">
+              <b style="color:${p.balance > 0 ? 'var(--ok)' : p.balance < 0 ? 'var(--bad)' : 'var(--mut)'}">${p.balance > 0 ? 'Owes you ' + f(p.balance) : p.balance < 0 ? 'You owe ' + f(Math.abs(p.balance)) : '✓ Settled'}</b>
+            </div>
+          </div>
+          <div class=row style="margin-top:8px">
+            <button onclick="personTxForm('${p.id}', 'lent')" style="min-height:34px;font-size:12px">+ Lend</button>
+            <button onclick="personTxForm('${p.id}', 'repaid')" style="min-height:34px;font-size:12px">+ Repaid</button>
+            <button onclick="peopleForm(S.people.find(x=>x.id=='${p.id}'))" style="min-height:34px;font-size:12px">Edit</button>
+          </div>
+        </div>
+      `).join('') : '<div class=m style="padding:12px 0;text-align:center">No active people matching filter. Tap + Add Person to track someone.</div>'}
+    </div>`;
+  }
 
   if (pt == 'goals') {
     return SG + `
@@ -1982,6 +2080,23 @@ function plan() {
     </div>`;
   }
 
+  const catBudgetsCard = `
+  <div class=c>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0">Category Monthly Budgets</h3>
+      <button onclick="catBudgetForm()" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px">Edit Limits</button>
+    </div>
+    <div class=m style="font-size:12px;margin-bottom:8px">Track actual monthly burn against category spending limits.</div>
+    ${Object.keys(S.catBudgets).length ? Object.entries(S.catBudgets).map(([cat, lim]) => {
+      const sp = sum(mt().filter(t => !t.adj && t.t == 'exp' && !t.reimb && (t.c || '') === cat));
+      const p = Math.min(100, Math.round((sp / lim) * 100));
+      return `
+      <div style="margin-bottom:8px">
+        <div class=r style="padding:0;font-size:12px"><span>${e(cat)}</span><b>${f(sp)} / ${f(lim)} (${p}%)</b></div>
+        ${bar(p, p >= 100 ? 'var(--bad)' : p >= 80 ? 'var(--warn)' : 'var(--ok)')}
+      </div>`;
+    }).join('') : '<div class=m>No category budgets configured yet. Tap Edit Limits to set caps for Fuel, Food, Groceries, etc.</div>'}
+  </div>`;
   const d = p => S.paid[p.id + '|' + k];
   const L = PL(k).filter(p => p.k == pt).sort((a, b) => (!!a.end - !!b.end) || a.day - b.day);
   const tot = sum(L.map(p => ({ a: pamt(p) })));
@@ -2010,6 +2125,7 @@ function plan() {
     `).join('') || '<div class=m>Nothing planned yet.</div>'}
     <button class=add onclick="planForm({k:'${pt}'})">+ Add ${KS[pt][2]}</button>
   </div>
+  ${catBudgetsCard}
   ${pt == 'exp' && bl.length ? `
   <div class=c>
     <h3>Credit card bills due</h3>
@@ -2153,88 +2269,33 @@ function hist() {
 }
 
 function more() {
-  const totPeopleOwed = sum((S.people || []).filter(p => p.balance > 0), 'balance');
-  const totPeopleOwe = sum((S.people || []).filter(p => p.balance < 0), 'balance');
-
   return `
   <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="margin:0">Bank accounts</h3>
-      <button class=pri onclick="accForm()" style="min-height:34px;padding:0 12px;font-size:12px">+ Add Bank</button>
-    </div>
-    ${S.acc.map(a => `<div class=r onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))"><span><i class=dot style="background:${colr(a.id)}"></i>${e(a.n)}</span><b>${f(accBal(a))}</b></div>`).join('') || '<div class=m>No accounts yet.</div>'}
-    <button style="width:100%;margin-top:8px" onclick="txForm({t:'xfer'})">Transfer between accounts</button>
-  </div>
-
-  <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="margin:0">People Ledger ("Who Owes Me What")</h3>
-      <button class=pri onclick="peopleForm()" style="min-height:34px;padding:0 12px;font-size:12px">+ Add Person</button>
-    </div>
-    <div class=m style="font-size:12px;margin-bottom:10px">Track loans, split bills, and repayments from friends and family.</div>
-    ${(S.people && S.people.length) ? S.people.map(p => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--line)">
-        <div class=r style="padding:0">
-          <div><b>${e(p.name)}</b>${p.phone ? `<div class=m style="font-size:11px">${e(p.phone)}</div>` : ''}</div>
-          <div style="text-align:right">
-            <b style="color:${p.balance > 0 ? 'var(--ok)' : p.balance < 0 ? 'var(--bad)' : 'var(--mut)'}">${p.balance > 0 ? 'Owes you ' + f(p.balance) : p.balance < 0 ? 'You owe ' + f(Math.abs(p.balance)) : 'Settled'}</b>
-          </div>
-        </div>
-        <div class=row style="margin-top:6px">
-          <button onclick="personTxForm('${p.id}', 'lent')" style="min-height:32px;font-size:11.5px">+ Lend</button>
-          <button onclick="personTxForm('${p.id}', 'repaid')" style="min-height:32px;font-size:11.5px">+ Repaid</button>
-          <button onclick="peopleForm(S.people.find(x=>x.id=='${p.id}'))" style="min-height:32px;font-size:11.5px">Edit</button>
-        </div>
-      </div>
-    `).join('') : '<div class=m>No people added yet. Keep track of hand loans and repayments here.</div>'}
-    ${totPeopleOwed ? `<div class=r style="margin-top:8px;font-size:12px"><span>Total Owed to You:</span><b class=ok>${f(totPeopleOwed)}</b></div>` : ''}
-  </div>
-
-  <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="margin:0">Category Budgets</h3>
-      <button onclick="catBudgetForm()" style="min-height:34px;padding:0 12px;font-size:12px">Edit Limits</button>
-    </div>
-    <div class=m style="font-size:12px;margin-bottom:8px">Configure individual monthly caps per spending category.</div>
-    ${Object.keys(S.catBudgets).length ? Object.entries(S.catBudgets).map(([cat, lim]) => {
-      const sp = sum(mt().filter(t => !t.adj && t.t == 'exp' && !t.reimb && (t.c || '') === cat));
-      const p = Math.min(100, Math.round((sp / lim) * 100));
-      return `
-      <div style="margin-bottom:8px">
-        <div class=r style="padding:0;font-size:12px"><span>${e(cat)}</span><b>${f(sp)} / ${f(lim)} (${p}%)</b></div>
-        ${bar(p, p >= 100 ? 'var(--bad)' : p >= 80 ? 'var(--warn)' : 'var(--ok)')}
-      </div>`;
-    }).join('') : '<div class=m>No category budgets set. Tap Edit Limits to configure.</div>'}
-  </div>
-
-  <div class=c>
-    <h3>Tools & Schedule Reminders</h3>
-    <button style="width:100%;margin-bottom:8px" onclick="exportCalendarICS()">📅 Export Card Bills to Calendar (.ics)</button>
-    <button style="width:100%" onclick="openSmsParser()">📋 Parse Bank SMS / UPI Transaction</button>
-  </div>
-
-  <div class=c>
-    <h3>Settings & Backups</h3>
+    <h3 style="margin-bottom:8px">App Preferences</h3>
     <div class=r><span>Total Monthly Budget</span><b>${f(S.budget)}</b></div>
     <button style="width:100%" onclick="budForm()">Set overall monthly budget</button>
     <button style="width:100%;margin-top:8px" onclick="tidy()">Tidy old categories</button>
     <button style="width:100%;margin-top:8px" onclick="S.est=!S.est;save()">Include everyday spending estimate in forecast: ${S.est ? 'On' : 'Off'}</button>
-    
-    <div style="margin-top:10px;padding:10px;border-radius:12px;background:var(--bg)">
-      <div class=r style="padding:0;margin-bottom:6px">
-        <span><b>Security / App Lock:</b></span>
-        <span class="${S.pin ? 'ok' : 'm'}">${S.pin ? 'PIN Active' : 'Disabled'}</span>
-      </div>
-      <button style="width:100%;min-height:36px;font-size:12px" onclick="pinSettingsForm()">${S.pin ? 'Change or Remove PIN' : 'Set 4-Digit Security PIN'}</button>
-    </div>
+  </div>
 
-    <div class=row style="margin-top:10px">
+  <div class=c>
+    <h3 style="margin-bottom:8px">App Lock & Security</h3>
+    <div class=r style="padding:0;margin-bottom:6px">
+      <span><b>PIN Security Lock:</b></span>
+      <span class="${S.pin ? 'ok' : 'm'}">${S.pin ? '4-Digit PIN Active' : 'Disabled'}</span>
+    </div>
+    <button style="width:100%;min-height:38px;font-size:13px" onclick="pinSettingsForm()">${S.pin ? 'Change or Remove Security PIN' : 'Set 4-Digit Security PIN'}</button>
+  </div>
+
+  <div class=c>
+    <h3 style="margin-bottom:8px">Data Management & Backups</h3>
+    <div class=row>
       <button onclick="bk(false)">Export / Share Backup</button>
       <button onclick="imp.click()">Import Backup</button>
     </div>
     <button style="width:100%;margin-top:8px" onclick="expCsv()">📊 Export all transactions to CSV (Excel)</button>
     <input type=file id=imp accept=.json hidden onchange="ld(this)">
-    <div class=m style="font-size:11px;margin-top:6px">Last backup: ${localStorage.getItem('fintrak_last_backup') || 'Never'}</div>
+    <div class=m style="font-size:11px;margin-top:8px">Last backup: ${localStorage.getItem('fintrak_last_backup') || 'Never'}</div>
   </div>
 
   ${appear()}
@@ -2245,7 +2306,6 @@ function more() {
   </div>
   `;
 }
-
 function pinSettingsForm() {
   if (S.pin) {
     if (confirm('A security PIN is currently active. Do you want to remove it? (Cancel to change PIN)')) {
