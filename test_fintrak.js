@@ -341,6 +341,71 @@ if (histView.includes('Outside App Adjustment') && histView.includes('📋 All')
   process.exit(1);
 }
 
+
+// 12. Test Credit Card Balance Reconciliation (Outside App Card Spending / Refunds)
+console.log('\n--- 12. Testing Credit Card Balance Reconciliation & Adjustment ---');
+api.S.cards = [{ id: 'cc_hdfc_test', n: 'HDFC Millennia', limit: 150000, bill: 12, due: 5 }];
+api.S.tx = []; // fresh ledger
+
+// Initial card balance is 0
+let cBal = api.cardOut(api.S.cards[0]);
+if (cBal === 0) {
+  console.log('✓ PASS: Initial credit card balance is ₹0.');
+}
+
+// Case A: Real card app says outstanding is ₹15,000 (spent ₹15,000 outside app)
+const diffCard1 = 15000 - cBal; // +15000
+api.S.tx.push({
+  id: 'card_adj_1',
+  d: api.iso(api.T),
+  t: 'exp',
+  a: diffCard1,
+  c: 'Miscellaneous',
+  n: 'HDFC Millennia: Outside app card spending (Balance adjustment)',
+  s: 'cc_hdfc_test',
+  adj: 1,
+  reimb: 0
+});
+
+cBal = api.cardOut(api.S.cards[0]);
+if (cBal === 15000) {
+  console.log('✓ PASS: Credit card balance accurately updated to real bank app outstanding (₹15,000).');
+} else {
+  console.error('FAIL: Card balance did not update to ₹15,000', cBal);
+  process.exit(1);
+}
+
+// Case B: Refund of ₹3,000 credited to card (real card balance becomes ₹12,000)
+const diffCard2 = 12000 - cBal; // -3000
+api.S.tx.push({
+  id: 'card_adj_2',
+  d: api.iso(api.T),
+  t: 'pay',
+  a: Math.abs(diffCard2),
+  c: 'Card payment',
+  n: 'HDFC Millennia: Card refund / reversal (Balance adjustment)',
+  s: '',
+  cd: 'cc_hdfc_test',
+  adj: 1
+});
+
+cBal = api.cardOut(api.S.cards[0]);
+if (cBal === 12000) {
+  console.log('✓ PASS: Credit card balance accurately reduced after merchant refund (₹12,000).');
+} else {
+  console.error('FAIL: Card balance did not reduce to ₹12,000', cBal);
+  process.exit(1);
+}
+
+// Case C: Check card view renders ⚖️ Adjust Balance button
+const cdView = api.cards();
+if (cdView.includes('⚖️ Adjust Balance')) {
+  console.log('✓ PASS: Cards view displays "⚖️ Adjust Balance" on credit cards.');
+} else {
+  console.error('FAIL: Cards view missing Adjust Balance button', cdView);
+  process.exit(1);
+}
+
 console.log('\n=========================================');
-console.log('ALL 11 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 12 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================\n');

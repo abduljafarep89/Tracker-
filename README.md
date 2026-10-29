@@ -104,6 +104,15 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
   * In **History**, adjustment entries are permanently recorded and highlighted with a distinct badge: `[⚖️ Outside App Adjustment]`.
   * Your bank account in Fintrak immediately matches your real-world bank balance down to the rupee without breaking past ledgers.
 
+
+* **Credit Card Balance Reconciliation**:
+  * Tap **⚖️ Adjust Balance** directly on any credit card card.
+  * Enter your actual live total outstanding balance from your banking app (e.g. HDFC MyCards, iMobile, SBI Card).
+  * Fintrak automatically calculates the difference:
+    * **If real balance is higher (+₹5,000)**: Automatically records an unlogged card expense in History on that card (`HDFC: Outside app card spending`), immediately updating your card balance to match reality.
+    * **If real balance is lower (-₹2,000)**: Automatically records a card balance reduction/refund in History without touching any bank account.
+  * Tagged in History with the distinct badge: `[⚖️ Outside App Adjustment]`.
+
 ### K. History UI Polish
 * **Top Tab Grid Icons**: Integrated clean, consistent icons matching the Plan tab: `📋 All`, `💸 Spent`, `💰 Income`, `📈 Invest`, `💳 Cards`, `⇄ Transfer`.
 * **Summary Line Non-Breaking Format**: Grouped metric labels and figures with non-breaking spans (`In: ₹...`, `Spent: ₹...`, `Invest: ₹...`) so amounts never awkwardly break across lines.

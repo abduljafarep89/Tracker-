@@ -826,6 +826,120 @@ function accForm(o = {}) {
   }));
 }
 
+
+// Credit Card Balance Reconciliation & Adjustment Engine
+function reconcileCardForm(cardId) {
+  const c = S.cards.find(x => x.id == cardId);
+  if (!c) return;
+  const currentOut = cardOut(c);
+
+  const d = $('#dlg');
+  d.innerHTML = `
+    <div class=sheet-drag-handle onclick="dlg.close()"></div>
+    <form id="reconcileCardForm" style="display:flex;flex-direction:column;gap:10px">
+      <h3 style="margin:0">⚖️ Reconcile ${e(c.n)} Card Balance</h3>
+      <div style="padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12.5px;line-height:1.4">
+        <div class=r style="padding:0"><span>Current Card Balance in App:</span><b style="font-size:14px">${f(currentOut)}</b></div>
+        <div class=m style="font-size:11.5px;margin-top:4px">Enter your actual total outstanding balance from your bank app (e.g. HDFC MyCards, iMobile, SBI Card). Fintrak will auto-calculate unlogged card spending or refunds and record it in History on today's date.</div>
+      </div>
+
+      <label style="font-size:12.5px;color:var(--mut);display:block">
+        Actual Live Card Outstanding (₹)
+        <input type="number" step="any" inputmode="decimal" id="reconcileCardActualInp" value="${Math.round(currentOut)}" required style="width:100%;min-height:44px;font-size:16px;font-weight:700;margin-top:4px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)">
+      </label>
+
+      <div id="reconcileCardLiveDiff" style="padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:12px">
+        No difference (balance matches).
+      </div>
+
+      <label style="font-size:12.5px;color:var(--mut);display:block">
+        Adjustment Date
+        <input type="date" id="reconcileCardDateInp" value="${iso(T)}" style="width:100%;min-height:40px;font-size:13px;margin-top:4px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)">
+      </label>
+
+      <label style="font-size:12.5px;color:var(--mut);display:block">
+        Reason / Note
+        <input type="text" id="reconcileCardNoteInp" value="Outside app card spending (Balance adjustment)" style="width:100%;min-height:40px;font-size:13px;margin-top:4px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)">
+      </label>
+
+      <div class=row style="margin-top:4px">
+        <button type="button" onclick="dlg.close()">Cancel</button>
+        <button type="submit" class=pri>Save Card Adjustment</button>
+      </div>
+    </form>
+  `;
+
+  const inp = $('#reconcileCardActualInp');
+  const diffBox = $('#reconcileCardLiveDiff');
+  const noteInp = $('#reconcileCardNoteInp');
+
+  function updateDiff() {
+    const act = +inp.value || 0;
+    const diff = act - currentOut;
+    if (Math.abs(diff) < 1) {
+      diffBox.innerHTML = `<span class=m>✓ Balances match (${f(act)}). No adjustment needed.</span>`;
+    } else if (diff > 0) {
+      diffBox.innerHTML = `<b class=bad>+${f(diff)} unlogged card spending</b><div class=m style="font-size:11px;margin-top:2px">Will be recorded as a credit card expense in History on ${c.n} to bring your total used balance to ${f(act)}.</div>`;
+      if (noteInp && noteInp.value.includes('Outside app')) noteInp.value = 'Outside app card spending (Balance adjustment)';
+    } else {
+      const refundAmt = Math.abs(diff);
+      diffBox.innerHTML = `<b class=ok>-${f(refundAmt)} card refund / cashback reversal</b><div class=m style="font-size:11px;margin-top:2px">Will be recorded as a card balance reduction in History on ${c.n} to bring your balance down to ${f(act)}.</div>`;
+      if (noteInp && noteInp.value.includes('Outside app')) noteInp.value = 'Card refund / reversal (Balance adjustment)';
+    }
+  }
+
+  inp.addEventListener('input', updateDiff);
+  updateDiff();
+
+  $('#reconcileCardForm').onsubmit = ev => {
+    ev.preventDefault();
+    const act = +inp.value;
+    if (isNaN(act)) return no('Enter a valid balance');
+    const diff = act - currentOut;
+    if (Math.abs(diff) < 1) {
+      toast('✓ Balance matches! No adjustment recorded.');
+      d.close();
+      return;
+    }
+    const dVal = $('#reconcileCardDateInp').value || iso(T);
+    const nVal = $('#reconcileCardNoteInp').value.trim() || 'Balance adjustment';
+
+    if (diff > 0) {
+      S.tx.push({
+        id: id(),
+        d: dVal,
+        t: 'exp',
+        a: diff,
+        c: 'Miscellaneous',
+        n: `${c.n}: ${nVal}`,
+        s: c.id,
+        adj: 1,
+        reimb: 0
+      });
+      toast(`✓ Recorded ${f(diff)} unlogged card spending on ${c.n}`);
+    } else {
+      const refundAmt = Math.abs(diff);
+      S.tx.push({
+        id: id(),
+        d: dVal,
+        t: 'pay',
+        a: refundAmt,
+        c: 'Card payment',
+        n: `${c.n}: ${nVal}`,
+        s: '',
+        cd: c.id,
+        adj: 1
+      });
+      toast(`✓ Recorded ${f(refundAmt)} card balance reduction on ${c.n}`);
+    }
+    save();
+    d.close();
+  };
+
+  d.showModal();
+  history.pushState({ t: V.t, dlg: 1 }, '');
+}
+
 function cardForm(o = {}) {
   form(o.id ? 'Edit card' : 'Add credit card', [
     { k: 'n', l: 'Card name', v: o.n },
@@ -833,6 +947,7 @@ function cardForm(o = {}) {
     { k: 'bill', l: 'Billing (statement) day of month', t: 'number', v: o.bill },
     { k: 'due', l: 'Payment due day of month', t: 'number', v: o.due },
     { k: 'pa', l: 'Usually paid from (bank account)', o: [['', '-'], ...opts(0)], v: o.pa },
+    ...(o.id ? [{ k: 'rec_box', l: '', h: `<div style="margin:10px 0;padding:12px;border-radius:12px;background:var(--bg);border:1px dashed var(--line)"><div class=m style="font-size:12px;margin-bottom:6px">Missed logging some card expenses or got a refund? Reconcile with your live card balance:</div><button type=button class=pri onclick="dlg.close();reconcileCardForm('${o.id}')" style="width:100%;min-height:38px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">⚖️ Reconcile / Adjust Card Balance</button></div>` }] : []),
     { k: 'col', l: '', h: swatches(defCol(o), true, o) }
   ],
   r => {
@@ -1734,7 +1849,10 @@ function cards() {
             <b style="font-size:16px;letter-spacing:0.5px">${e(c.n)}</b>
             <svg width=16 height=16 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.85"><path d="M5 8.5a7 7 0 0 1 0 7"/><path d="M8.5 6a10.5 10.5 0 0 1 0 12"/><path d="M12 3.5a14 14 0 0 1 0 17"/></svg>
           </div>
-          <button class=gb onclick="cardForm(S.cards.find(x=>x.id=='${c.id}'))" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px">Edit</button>
+          <div style="display:flex;gap:6px">
+            <button class=gb onclick="reconcileCardForm('${c.id}')" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px" title="Adjust live card balance">⚖️ Adjust</button>
+            <button class=gb onclick="cardForm(S.cards.find(x=>x.id=='${c.id}'))" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">Edit</button>
+          </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;margin:4px 0">
           <svg width=38 height=28 viewBox="0 0 40 30" style="border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,0.3)"><rect width=40 height=30 rx=4 fill="#E5C158" stroke="#B89736" stroke-width=1/><rect x=3 y=3 width=34 height=24 rx=2 fill="none" stroke="#997C22" stroke-width=0.8 stroke-dasharray="6 3"/><line x1=3 y1=15 x2=37 y2=15 stroke="#997C22" stroke-width=0.8/><line x1=15 y1=3 x2=15 y2=27 stroke="#997C22" stroke-width=0.8/><line x1=25 y1=3 x2=25 y2=27 stroke="#997C22" stroke-width=0.8/></svg>
@@ -1765,8 +1883,11 @@ function cards() {
       ` : `<div class=ok><b>${b.billed ? 'Paid in full' : 'Nothing due this month'}</b></div>`}
       
       <div class=row>
-        <button onclick="txForm({t:'pay',s:'${c.pa || ''}',cd:'${c.id}'})">Other amount</button>
+        <button onclick="reconcileCardForm('${c.id}')" title="Adjust to live card balance">⚖️ Adjust Balance</button>
         <button onclick="stmtForm('${c.id}')">Statement amounts</button>
+      </div>
+      <div style="margin-top:6px">
+        <button style="width:100%;font-size:12px;min-height:32px" onclick="txForm({t:'pay',s:'${c.pa || ''}',cd:'${c.id}'})">Other payment amount</button>
       </div>
     </div>`;
   }).join('')}
