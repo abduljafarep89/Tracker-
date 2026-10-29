@@ -1894,7 +1894,18 @@ function cal() {
 
 function plan() {
   const k = ym(V.y, V.m), pt = V.pt || 'cal';
-  const SG = `<div class=seg>${Object.keys(KS).map(x => `<button class="${pt == x ? 'on' : ''}" onclick="V.pt='${x}';render()">${KS[x][0]}</button>`).join('')}</div>`;
+  const SG = `
+  <div class="seg-grid">
+    <div class="seg-row">
+      <button class="${pt == 'cal' ? 'on' : ''}" onclick="V.pt='cal';render()">📅 Calendar</button>
+      <button class="${pt == 'exp' ? 'on' : ''}" onclick="V.pt='exp';render()">💳 Bills</button>
+      <button class="${pt == 'inv' ? 'on' : ''}" onclick="V.pt='inv';render()">📈 Invest</button>
+    </div>
+    <div class="seg-row">
+      <button class="${pt == 'inc' ? 'on' : ''}" onclick="V.pt='inc';render()">💰 Income</button>
+      <button class="${pt == 'goals' ? 'on' : ''}" onclick="V.pt='goals';render()">🎯 Goals</button>
+    </div>
+  </div>`;
 
   if (pt == 'cal') return SG + cal();
 
@@ -1995,8 +2006,17 @@ function hist() {
   const fsp = sum(L.filter(t => t.t == 'exp'));
 
   return `
-  <div class="seg sm">
-    ${F.map(([k, l]) => `<button class="${fl == k ? 'on' : ''}" onclick="V.hf='${k}';render()">${l}</button>`).join('')}
+  <div class="seg-grid">
+    <div class="seg-row">
+      <button class="${fl == 'all' ? 'on' : ''}" onclick="V.hf='all';render()">All</button>
+      <button class="${fl == 'exp' ? 'on' : ''}" onclick="V.hf='exp';render()">Spent</button>
+      <button class="${fl == 'inc' ? 'on' : ''}" onclick="V.hf='inc';render()">Income</button>
+    </div>
+    <div class="seg-row">
+      <button class="${fl == 'inv' ? 'on' : ''}" onclick="V.hf='inv';render()">Invest</button>
+      <button class="${fl == 'pay' ? 'on' : ''}" onclick="V.hf='pay';render()">Cards</button>
+      <button class="${fl == 'xfer' ? 'on' : ''}" onclick="V.hf='xfer';render()">Transfer</button>
+    </div>
   </div>
 
   <div style="position:relative;margin:8px 0 4px">

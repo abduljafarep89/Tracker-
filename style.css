@@ -225,7 +225,86 @@ dialog input, dialog select, dialog textarea {
 .tile { border-radius: 14px; padding: 10px 12px; }
 .tile b { font-size: 16px; display: block; }
 
+/* Responsive 2-Row Segmented Grid - Never Overflows Screen */
+.seg-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--line);
+  padding: 4px;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.seg-row {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.seg-row button {
+  flex: 1;
+  min-height: 38px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mut);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  text-align: center;
+  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.seg-row button.on {
+  background: var(--card);
+  color: var(--pri);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 .seg {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--line);
+  border-radius: 14px;
+  padding: 3px;
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.seg button {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  padding: 0 8px;
+  border: 0;
+  min-height: 38px;
+  border-radius: 11px;
+  background: none;
+  font-size: 13px;
+  text-align: center;
+}
+.seg .on {
+  background: var(--card);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* legacy seg */
+.old-seg {
   display: flex;
   background: var(--line);
   border-radius: 14px;
