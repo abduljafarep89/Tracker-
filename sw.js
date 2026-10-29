@@ -1,20 +1,28 @@
-const C = 'fintrak-v21',
-  F = [
-    './',
-    'index.html',
-    'manifest.webmanifest',
-    'manifest.json',
-    'icon-192.png',
-    'icon-512.png',
-    'apple-touch-icon.png',
-    'favicon.png'
-  ];
+const C = 'fintrak-v22';
+const F = [
+  './',
+  'index.html',
+  'style.css',
+  'app.js',
+  'manifest.webmanifest',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-512-maskable.png',
+  'apple-touch-icon.png',
+  'favicon.png'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(C)
-      .then(c => c.addAll(F))
-      .then(() => self.skipWaiting())
+    caches.open(C).then(cache => {
+      return Promise.allSettled(
+        F.map(url =>
+          cache.add(url).catch(err => {
+            console.warn('Fintrak SW: optional cache add skipped for', url, err);
+          })
+        )
+      );
+    }).then(() => self.skipWaiting())
   );
 });
 
@@ -30,15 +38,38 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Stale-While-Revalidate: instant offline load + background update
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(
-    fetch(e.request)
-      .then(r => {
-        const c = r.clone();
-        caches.open(C).then(x => x.put(e.request, c));
-        return r;
+  
+  // For navigation requests (opening the app)
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const fetchPromise = fetch(e.request).then(netRes => {
+          if (netRes && netRes.status === 200) {
+            const clone = netRes.clone();
+            caches.open(C).then(c => c.put(e.request, clone));
+          }
+          return netRes;
+        }).catch(() => cached || caches.match('index.html'));
+        return cached || fetchPromise;
       })
-      .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // For static assets: CSS, JS, Images, Icons
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(netRes => {
+        if (netRes && netRes.status === 200) {
+          const clone = netRes.clone();
+          caches.open(C).then(c => c.put(e.request, clone));
+        }
+        return netRes;
+      }).catch(() => cached);
+      return cached || fetchPromise;
+    })
   );
 });

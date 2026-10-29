@@ -1,68 +1,65 @@
-# Fintrak — Personal Finance Tracker (PWA)
+# Fintrak — Personal Finance & Cashflow Suite
 
-A privacy-first, lightning-fast personal finance Progressive Web Application designed for mobile and desktop. Track bank accounts, optimize credit card cycles, forecast month-end solvency, manage sinking fund goals, and simulate financial scenarios — with 100% of your data stored locally on your device (`localStorage`).
-
----
-
-## 🌟 What's New in Fintrak (Phase 1 & Phase 2 Features)
-
-1. **Brand Identity & Revamped Modern Icon**
-   - Sleek modern vector crest combining the stylized **F**, Indian Rupee symbol (**₹**), and upward financial growth curve on deep royal indigo/electric violet gradient.
-   - PWA assets: `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, and `favicon.png`.
-
-2. **Budget Pace Line with Dynamic Overshoot Alert (Phase 1)**
-   - Interactive SVG chart plotting cumulative daily spend against ideal linear budget pace.
-   - Intelligent predictive alert: *"⚠️ At current pace (₹X/day), you will overshoot your budget by ₹Y on Day Z"* or *"✓ On Track: finishing ₹Y under budget"*.
-   - Visual overshoot marker dot placed right on the day of projected budget breach.
-
-3. **Goals & Sinking Funds Module (Phase 1 & 2)**
-   - Dedicated sinking funds tracker under the **Plan** tab (`Goals`) and summary card on Home.
-   - Circular SVG progress rings showing percentage achieved toward vehicle insurance, school fees, annual maintenance, or emergency buffers.
-   - One-tap `+ Add ₹` contribution button to quickly add savings and optionally log from bank accounts.
-
-4. **Comprehensive Financial Health Scorecard (0–100) (Phase 1)**
-   - Interactive composite health score (Optimal, Healthy, Moderate, Needs Attention).
-   - Diagnostic metric bars for **Savings Rate** (target >30%), **Emergency Runway** (target 6 mo), and **Credit Utilization** (target <30%).
-   - Tailored priority recommendations highlighting the single most impactful financial move.
-
-5. **What-If Scenario Simulation Sandbox (Phase 2)**
-   - Collapsible slider on Home allowing instant simulation of SIP investment adjustments (`+₹1k` to `+₹25k/mo`) or living spend cuts (`-₹1k` to `-₹15k/mo`).
-   - Live reactive forecast calculating impact on month-end cash, safe daily spend velocity, and 1-year wealth accumulation without modifying actual ledger records.
-
-6. **Quick-Add Category Touch Pills (Phase 1)**
-   - Instant 1-tap category pills (`Fuel`, `Groceries`, `Restaurant & takeaway`, `Food & Drinks`, `Personal`, `Utilities`, `Adhoc`) in the Add Entry sheet.
-
-7. **Credit Card Optimizer & Full Liability Overview (Phase 1)**
-   - Total credit card liabilities displayed in Home and Cards views.
-   - Real-time billing cycle countdown badges (`✓ Paid in full`, `⚠️ Due Today`, `⏳ Due in X days`, `🚨 Overdue`).
-   - Best card to swipe today based on interest-free days.
-   - Minimum due versus full payment optimizer advice.
-
-8. **Seamless Backward Compatibility & Universal Restore**
-   - Automatically migrates existing `finplan_v1` and legacy `tracker_multi_row_mobile_suite` datasets without data loss.
-   - Universal JSON import supporting Fintrak, FinPlan, and multi-month tracker backups.
+Fintrak is an offline-first, mobile-optimized personal finance Progressive Web App (PWA) with zero server dependencies. All data is calculated client-side and saved securely in your browser's local storage.
 
 ---
 
-## 🚀 Deployment to GitHub Pages
+## 1. Quick Start & GitHub Pages Deployment
 
-1. Commit and push the updated files to your GitHub repository (e.g. `abduljafarep89/Tracker-`):
-   - `index.html`
-   - `manifest.webmanifest`
-   - `manifest.json`
-   - `sw.js`
-   - `icon-192.png`
-   - `icon-512.png`
-   - `apple-touch-icon.png`
-   - `favicon.png`
-2. Go to **Settings > Pages** in your GitHub repository.
-3. Set Source to **Deploy from a branch** -> `main` / `(root)`.
-4. Open `https://<your-username>.github.io/<repo>/` in your phone browser.
+1. Download or clone this repository.
+2. Upload the following core bundle files to your GitHub repository root (`main` branch):
+   * `index.html` (Application HTML shell)
+   * `style.css` (Design system & responsive mobile styles)
+   * `app.js` (Core calculation engine, data models, and views)
+   * `sw.js` (Service worker with Stale-While-Revalidate caching)
+   * `manifest.webmanifest` (PWA manifest with maskable icons & shortcuts)
+   * App Icons (`icon-192.png`, `icon-512.png`, `icon-512-maskable.png`, `apple-touch-icon.png`, `favicon.png`)
+3. On GitHub: Go to **Settings** → **Pages** → Source: **Deploy from a branch** → Branch: `main` → **Save**.
+4. Open your live URL on your phone in Google Chrome or Safari:
+   * **Android / Chrome**: Tap the three-dot menu (⋮) → **Install app** (or **Add to Home screen**).
+   * **iPhone / Safari**: Tap the Share button (⎋) → **Add to Home Screen**.
 
 ---
 
-## 📱 Install on Mobile (PWA)
+## 2. Core Architecture & Enhancements
 
-- **Android (Chrome)**: Tap the three-dot menu `⋮` > **Install app** (or **Add to Home screen**).
-- **iPhone (Safari)**: Tap the Share button `⎋` > **Add to Home Screen**.
-- **Service Worker Cache**: The service worker is set to `fintrak-v18`, ensuring immediate cache busting and automatic cleanup of previous FinPlan cache storage.
+* **Trustworthy Numbers**:
+  * **Safe Daily Spend**: Based on your remaining monthly budget ($(\text{Budget} - \text{Spent}) / \text{Days Left}$), or on uncommitted monthly surplus if no budget is set. Never divides lifetime bank cash.
+  * **Net Cashflow & Salary Pending**: Measures spending and investment percentages against total expected monthly income so figures remain accurate before salary arrives.
+  * **Empty Month Analytics**: Displays "No prior month data" instead of a false +100% surge alert when comparing against an empty previous month.
+* **Navigation & Mobile Layout**:
+  * 5 primary bottom tabs: `Home`, `Cards`, `Analytics`, `Plan`, `History`.
+  * Fully opaque bottom navigation (`z-index: 1000`) across all screens.
+  * Compact header with `"Oct 2026"` date formatting designed for 360px–390px viewports.
+  * Settings and tools accessible via the header gear icon (`⚙️`).
+* **Data Safety & PWA**:
+  * Single storage key (`fintrak_v1`) with automatic legacy migration.
+  * Safe writes wrapped in `try/catch` with automated storage persistence (`navigator.storage.persist()`).
+  * 14-day backup reminder banner.
+  * Stale-While-Revalidate service worker (`sw.js`) caching assets individually via `Promise.allSettled`.
+* **Minimalist Brand Icons**:
+  * Ultra-compressed icons (all under 10 KB).
+  * Full-bleed square maskable icon (`icon-512-maskable.png`) with logo placed within the central 80% safe zone.
+  * High-contrast simplified 32×32 favicon.
+
+---
+
+## 3. Advanced Feature Suite
+
+* **People Ledger ("Who Owes Me What")**: Track hand loans, split bills, and repayments from friends and family with optional auto-reconciliation to bank accounts.
+* **Category Budgets**: Set spending limits per category with visual progress bars and over-budget warnings.
+* **Bank SMS & UPI Parser**: Paste bank transaction SMS messages to automatically extract amounts, merchants, dates, and categories.
+* **Calendar Reminders Export (`.ics`)**: Export upcoming credit card statement due dates and planned payment alerts to Google Calendar or Apple Calendar with 1-day advance notifications.
+* **Quick Add Shortcuts**: 1-tap shortcut pills on Home for frequent expenses (`Fuel`, `Coffee`, `Groceries`, `Food`).
+* **Undo Engine**: 5-second interactive Undo action toast when deleting any transaction or planned item.
+* **Backup Sharing & App Lock**: Share backups directly via WhatsApp/Drive using the Web Share API, with optional password protection and a 4-digit security PIN lock.
+
+---
+
+## 4. Running the Smoke Test Suite
+
+To verify all calculations and features locally using Node.js:
+```bash
+node test_fintrak.js
+```
+All 7 automated test suites should pass with zero errors.
