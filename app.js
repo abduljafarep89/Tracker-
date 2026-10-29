@@ -292,7 +292,7 @@ function getSafeDailySpend() {
   const td = cur() ? T.getDate() : dn;
   const daysLeft = Math.max(1, dn - td + 1);
   const M = mt().filter(t => !t.adj);
-  const ex = sum(M.filter(t => t.t == 'exp'));
+  const ex = sum(M.filter(t => t.t == 'exp' && !t.reimb));
 
   // 1. If monthly budget is configured
   if (S.budget && S.budget > 0) {
@@ -589,6 +589,21 @@ function txForm(o = {}) {
     { k: 'd', l: 'Date', t: 'date', v: o.d || iso(T) },
     { k: 'c', l: 'Category', h: catSel(o.t || 'exp', o.c) },
     { k: 's', l: 'Account or card (card only for expenses)', o: opts(1), v: o.s },
+    { k: 'reimb_box', l: '', h: `
+  <div style="margin:10px 0;padding:10px;border-radius:12px;background:var(--bg);border:1px solid var(--line)">
+    <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:600;font-size:13px;color:var(--ink)">
+      <input type="checkbox" name="reimb" value="1" ${o.reimb ? 'checked' : ''} onchange="const row=document.getElementById('reimbPersonRow');if(row)row.style.display=this.checked?'':'none'" style="width:18px;height:18px;min-height:0;margin:0;flex:none;accent-color:var(--pri)">
+      <span>🤝 Paid for a friend (Reimbursable)</span>
+    </label>
+    <div class="m" style="font-size:11px;margin-top:4px">Excludes this swipe from personal living spend & analytics, while keeping card balance & liability 100% accurate.</div>
+    <div id="reimbPersonRow" style="margin-top:8px;${o.reimb ? '' : 'display:none'}">
+      <label style="font-size:12px;margin-bottom:4px;display:block">Who owes you? (Links to People Ledger)</label>
+      <select name="reimb_pid" style="width:100%;min-height:38px;font-size:13px;border-radius:8px;border:1px solid var(--line);background:var(--card)">
+        <option value="">- Select person (optional) -</option>
+        ${(S.people||[]).map(p => `<option value="${p.id}" ${o.reimb_pid==p.id?'selected':''}>${e(p.name)} (${p.balance > 0 ? 'owes '+f(p.balance) : p.balance < 0 ? 'you owe '+f(Math.abs(p.balance)) : 'settled'})</option>`).join('')}
+      </select>
+    </div>
+  </div>` },
     { k: 'to', l: 'To account', o: [['', '-'], ...opts(0)], v: o.to },
     { k: 'cd', l: 'Card being paid (bill payment only)', o: [['', '-'], ...S.cards.map(c => [c.id, c.n])], v: o.cd },
     { k: 'n', l: 'Note', v: o.n }
@@ -608,6 +623,38 @@ function txForm(o = {}) {
       const cc = S.cards.find(x => x.id == r.cd);
       if (cc) cc.pa = r.s;
     }
+    
+    // Process reimbursable flag and sync with People Ledger
+    const wasReimb = !!o.reimb;
+    const nowReimb = r.reimb === '1' || r.reimb === 1 || r.reimb === true || r.reimb === 'on';
+    r.reimb = nowReimb ? 1 : 0;
+    r.reimb_pid = nowReimb ? (r.reimb_pid || '') : '';
+
+    const oldPid = o.reimb_pid || '';
+    const newPid = r.reimb_pid || '';
+
+    // Revert old person balance if unlinked or changed
+    if (wasReimb && oldPid && (oldPid !== newPid || !nowReimb)) {
+      const oldP = (S.people || []).find(p => p.id == oldPid);
+      if (oldP) {
+        oldP.balance = (oldP.balance || 0) - (o.a || 0);
+      }
+    }
+
+    // Add amount to new person balance
+    if (nowReimb && newPid && (!wasReimb || oldPid !== newPid || o.a !== r.a)) {
+      const newP = (S.people || []).find(p => p.id == newPid);
+      if (newP) {
+        const amtToAdd = wasReimb && oldPid === newPid ? (r.a - o.a) : r.a;
+        newP.balance = (newP.balance || 0) + amtToAdd;
+        newP.txs = newP.txs || [];
+        newP.txs.unshift({ id: id(), d: r.d, a: r.a, type: 'lent', note: `Paid for friend: ${r.n || r.c}` });
+      }
+    }
+
+    delete r.sms;
+    delete r.reimb_box;
+
     put(S.tx, o, r);
     save();
   },
@@ -1285,13 +1332,13 @@ function unscrubMoM() {
 function home() {
   const M = mt().filter(t => !t.adj);
   const inc = sum(M.filter(t => t.t == 'inc'));
-  const ex = sum(M.filter(t => t.t == 'exp'));
+  const ex = sum(M.filter(t => t.t == 'exp' && !t.reimb));
   const iv = sum(M.filter(t => t.t == 'inv'));
   const cash = S.acc.reduce((s, a) => s + accBal(a), 0);
   const debt = S.cards.reduce((s, c) => s + cardOut(c), 0);
   const lim = sum(S.cards, 'limit');
   const mm = {};
-  S.tx.filter(t => t.t == 'exp' && !t.adj).forEach(t => mm[t.d.slice(0, 7)] = (mm[t.d.slice(0, 7)] || 0) + t.a);
+  S.tx.filter(t => t.t == 'exp' && !t.adj && !t.reimb).forEach(t => mm[t.d.slice(0, 7)] = (mm[t.d.slice(0, 7)] || 0) + t.a);
   const ks = Object.keys(mm).sort().slice(-3);
   const avg = ks.length ? ks.reduce((s, k) => s + mm[k], 0) / ks.length : 0;
   const run = avg ? cash / avg : 0;
@@ -1305,7 +1352,7 @@ function home() {
   const td = cur() ? T.getDate() : dn;
   let cu = 0; const pt = [];
   for (let d = 1; d <= td; d++) {
-    cu += sum(M.filter(t => t.t == 'exp' && +t.d.slice(8) == d));
+    cu += sum(M.filter(t => t.t == 'exp' && !t.reimb && +t.d.slice(8) == d));
     pt.push([d, cu]);
   }
   const dailyPace = td > 0 ? Math.round(cu / td) : 0;
@@ -1336,7 +1383,7 @@ function home() {
   const pace = S.budget ? `<svg viewBox="0 0 340 130" width=100% id=paceSvg role=img aria-label="Budget pace chart" style="touch-action:none;cursor:crosshair" onpointerdown="scrubPace(event)" onpointermove="if(event.buttons||event.pointerType==='touch')scrubPace(event)" onpointerup="unscrubPace()" onpointerleave="unscrubPace()"><line x1=10 y1=120 x2=330 y2=120 stroke="var(--line)"/><line x1="${X(1)}" y1="${Y(0)}" x2="${X(dn)}" y2="${Y(S.budget)}" stroke="var(--mut)" stroke-width=2 stroke-dasharray="5 4"/><polyline fill=none stroke="var(--pri)" stroke-width=3 stroke-linejoin=round points="${pt.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')}"/>${cur() ? `<line x1="${X(td)}" y1="${Y(cu)}" x2="${X(dn)}" y2="${Y(pj)}" stroke="${pj > S.budget ? 'var(--bad)' : 'var(--ok)'}" stroke-width=3 stroke-dasharray="3 4" stroke-linecap=round />` : ''}${overMarker}<line id=scrubLine x1=0 y1=10 x2=0 y2=120 stroke="var(--pri)" stroke-width=1.5 stroke-dasharray="2 2" style="display:none;pointer-events:none"/><circle id=scrubDot cx=0 cy=0 r=4.5 fill="var(--pri)" stroke="#fff" stroke-width=2 style="display:none;pointer-events:none"/></svg><div id=scrubTip style="min-height:36px">${paceAlert}</div>` : '<div class=m>Set a monthly budget in More to see your spending pace.</div>';
 
   const cg = {};
-  M.filter(t => t.t == 'exp').forEach(t => cg[CATG[t.c] || t.c || 'Other'] = (cg[CATG[t.c] || t.c || 'Other'] || 0) + t.a);
+  M.filter(t => t.t == 'exp' && !t.reimb).forEach(t => cg[CATG[t.c] || t.c || 'Other'] = (cg[CATG[t.c] || t.c || 'Other'] || 0) + t.a);
   let cl = Object.entries(cg).sort((a, b) => b[1] - a[1]);
   if (cl.length > 5) cl = [...cl.slice(0, 5), ['Other', sum(cl.slice(5).map(x => ({ a: x[1] })))]];
 
@@ -1586,8 +1633,8 @@ function analytics() {
   const txC = S.tx.filter(t => t.d.slice(0, 7) == cKey && !t.adj);
   const txP = S.tx.filter(t => t.d.slice(0, 7) == pKey && !t.adj);
 
-  const expC = txC.filter(t => t.t == 'exp');
-  const expP = txP.filter(t => t.t == 'exp');
+  const expC = txC.filter(t => t.t == 'exp' && !t.reimb);
+  const expP = txP.filter(t => t.t == 'exp' && !t.reimb);
   const totExpC = sum(expC);
   const totExpP = sum(expP);
 
@@ -1662,7 +1709,7 @@ function analytics() {
     const label = new Date(my, mm).toLocaleString('en-IN', { month: 'short' });
     const txs = S.tx.filter(t => t.d.slice(0, 7) == k && !t.adj);
     const incM = sum(txs.filter(t => t.t == 'inc'));
-    const expM = sum(txs.filter(t => t.t == 'exp'));
+    const expM = sum(txs.filter(t => t.t == 'exp' && !t.reimb));
     const invM = sum(txs.filter(t => t.t == 'inv'));
     sixMo.push({ k, label, inc: incM, exp: expM, inv: invM, isCurrent: i == 0 });
   }
@@ -1866,7 +1913,7 @@ function cal() {
     if (b.billed) E.push({ d: dd(b.dueD), k: 'due', n: c.n + ' bill', a: b.pay || b.billed, done: b.pay == 0, cid: c.id });
   });
   const M = mt().filter(t => !t.adj), sp = {};
-  M.filter(t => t.t == 'exp').forEach(t => sp[dd(t.d)] = (sp[dd(t.d)] || 0) + t.a);
+  M.filter(t => t.t == 'exp' && !t.reimb).forEach(t => sp[dd(t.d)] = (sp[dd(t.d)] || 0) + t.a);
   const mx = Math.max(1, ...Object.values(sp));
   const grid = [...Array(fd).fill(0), ...Array.from({ length: dn }, (_, i) => i + 1)].map(d => {
     if (!d) return '<span></span>';
@@ -2090,7 +2137,10 @@ function hist() {
           <div class=r onclick="txForm(S.tx.find(y=>y.id=='${t.id}'))">
             <span style="width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,${b.bg} 18%,transparent);color:${b.bg};border:1px solid color-mix(in srgb,${b.bg} 32%,transparent);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">${b.icon}</span>
             <div style="flex:1;min-width:0">
-              <b>${e(t.n || t.c || 'Entry')}</b>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <b>${e(t.n || t.c || 'Entry')}</b>
+                ${t.reimb ? `<span class="badge-countdown" style="background:color-mix(in srgb,var(--pri) 15%,transparent);color:var(--pri)">🤝 For Friend${t.reimb_pid ? ' · ' + e(((S.people||[]).find(p=>p.id==t.reimb_pid)||{}).name || '') : ''}</span>` : ''}
+              </div>
               <div class=m>${e(t.t == 'pay' ? 'Card payment' : t.t == 'xfer' ? 'Transfer' : t.c || 'Uncategorised')} · ${chip(t.s)}${t.t == 'pay' ? ' → ' + chip(t.cd) : t.t == 'xfer' ? ' → ' + chip(t.to) : ''}</div>
             </div>
             <b style="color:${t.t == 'inc' ? 'var(--ok)' : t.t == 'inv' ? 'var(--pri)' : t.t == 'pay' || t.t == 'xfer' ? 'var(--mut)' : 'var(--ink)'}">${t.t == 'inc' ? '+' : t.t == 'xfer' ? '' : '-'}${f(t.a)}</b>
@@ -2147,7 +2197,7 @@ function more() {
     </div>
     <div class=m style="font-size:12px;margin-bottom:8px">Configure individual monthly caps per spending category.</div>
     ${Object.keys(S.catBudgets).length ? Object.entries(S.catBudgets).map(([cat, lim]) => {
-      const sp = sum(mt().filter(t => !t.adj && t.t == 'exp' && (t.c || '') === cat));
+      const sp = sum(mt().filter(t => !t.adj && t.t == 'exp' && !t.reimb && (t.c || '') === cat));
       const p = Math.min(100, Math.round((sp / lim) * 100));
       return `
       <div style="margin-bottom:8px">

@@ -23,6 +23,15 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 
 ## 2. Core Bugfixes & Trust In Data
 
+* **Contextual History Tab Summaries**:
+  * In the **All** tab: Displays total count and full breakdown: 
+  * In the **Spent** tab: Displays entry count and total spend: 
+  * In the **Income** tab: Displays entry count and total income:  (no longer incorrectly shows "Spent: ₹0").
+  * In the **Invest** tab: Displays entry count and total invested: 
+  * In the **Cards** tab: Displays entry count and total card payments: 
+  * In the **Transfer** tab: Displays entry count and total transferred: 
+  * In daily grouped headers: Displays the contextual day total matching the active tab (e.g.,  on Income,  on Transfer).
+
 * **Accurate Safe Daily Spend**:
   * If a monthly budget is set: divides the *remaining budget* ($\text{Budget} - \text{Spent}$) by the remaining days in the month.
   * If no budget is set: divides the *uncommitted monthly surplus* ($\text{Planned Income} - \text{Fixed Bills} - \text{Investments} - \text{Spent}$) by the remaining days.
@@ -80,6 +89,19 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
 
 ### F. Undo After Delete
 * When deleting any transaction, a 5-second toast notification appears with an **Undo** action button to restore the entry immediately.
+
+
+### H. Paid for a Friend / Reimbursable Transactions
+* **How It Works**:
+  * In the **Add / Edit Entry** form, check **🤝 Paid for a friend (Reimbursable)**.
+  * Optionally select the friend from your **People Ledger** (e.g., Uma, Janish, Jinsha).
+* **For Historical Payments**:
+  * Tap any existing transaction in the **History** tab to open its edit dialog.
+  * Check the reimbursable toggle and select the friend (or uncheck to revert).
+* **Financial Impact**:
+  * **Analytics & Living Burn**: Automatically excluded from monthly living expenses, budget pace curves, category charts, and daily burn rates.
+  * **Credit Card Liabilities**: 100% retained in your credit card balance, unbilled spend, and statement due date calculations so you never miss paying your card bill.
+  * **People Ledger Auto-Sync**: The amount is automatically added to that friend's balance in "Who Owes Me What". When they repay you, recording the repayment settles their debt without inflating your salary income.
 
 ### G. Backup Sharing & PIN Lock
 * Tap **Export / Share Backup** to share your backup directly to WhatsApp, Google Drive, or Gmail using the Web Share API.

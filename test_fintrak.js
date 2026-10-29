@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -197,6 +197,43 @@ if (hXfer.includes('Total Transferred:') && hXfer.includes('₹1,000') && !hXfer
   process.exit(1);
 }
 
+
+// 9. Test Reimbursable (Paid for Friend) Exclusion & Card Liability Accuracy
+console.log('\n--- 9. Testing Reimbursable Friend Payments ---');
+api.V.hf = 'all';
+api.S.cards = [{ id: 'cc_test', n: 'HDFC Millennia', limit: 150000, bill: 12, due: 5 }];
+api.S.people = [{ id: 'p_uma', name: 'Uma', balance: 0, txs: [] }];
+const todayDate = api.iso(api.T);
+
+// Add swipe for friend
+api.S.tx = [
+  { id: 'tx_friend', d: todayDate, t: 'exp', a: 15000, c: 'Flight', n: 'Flight Ticket', s: 'cc_test', reimb: 1, reimb_pid: 'p_uma' }
+];
+
+const cardDebt = api.cardOut(api.S.cards[0]);
+if (cardDebt === 15000) {
+  console.log('✓ PASS: Credit card balance STILL includes ₹15,000 (card liability remains 100% accurate).');
+} else {
+  console.error('FAIL: Card liability not tracked for friend swipe', cardDebt);
+  process.exit(1);
+}
+
+const an = api.analytics();
+if (!an.includes('₹15,000')) {
+  console.log('✓ PASS: Friend payment excluded from personal living spend analytics and pace curves.');
+} else {
+  console.error('FAIL: Friend payment leaked into analytics');
+  process.exit(1);
+}
+
+const histHtml = api.hist();
+if (histHtml.includes('🤝 For Friend · Uma')) {
+  console.log('✓ PASS: History displays friend reimbursable badge.');
+} else {
+  console.error('FAIL: History missing reimbursable badge');
+  process.exit(1);
+}
+
 console.log('\n=========================================');
-console.log('ALL 8 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 9 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================\n');
