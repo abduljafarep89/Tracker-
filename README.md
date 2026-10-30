@@ -113,6 +113,18 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
     * **If real balance is lower (-₹2,000)**: Automatically records a card balance reduction/refund in History without touching any bank account.
   * Tagged in History with the distinct badge: `[⚖️ Outside App Adjustment]`.
 
+
+### L. Planned Payment Confirmation & Date Selection Sheet
+* **Prevents Accidental Unticks**:
+  * Tapping the checkmark on an already-paid item opens a confirmation prompt (`Unmark "Rent"? This will remove the transaction from History.`), preventing accidental deletion while scrolling.
+* **Pre-Filled Confirmation Sheet on Ticking**:
+  * Tapping an unpaid item opens a pre-filled confirmation sheet.
+  * **Payment Date Options**: Pre-filled with the **Scheduled Due Date** (e.g., Oct 5), with two 1-tap quick buttons:
+    * `[📅 Scheduled (5 Oct)]`: Preserves the scheduled date so marking it paid on the 30th does not falsely bloat today's daily living expenses.
+    * `[⚡ Today (30 Oct)]`: Quickly sets the transaction to today if paid early or late.
+    * Custom Date Picker: Allows choosing any specific calendar day.
+  * **Actual Amount & Account**: Pre-filled with the planned amount and account, easily editable if the utility bill or payment differed.
+
 ### K. History UI Polish
 * **Top Tab Grid Icons**: Integrated clean, consistent icons matching the Plan tab: `📋 All`, `💸 Spent`, `💰 Income`, `📈 Invest`, `💳 Cards`, `⇄ Transfer`.
 * **Summary Line Non-Breaking Format**: Grouped metric labels and figures with non-breaking spans (`In: ₹...`, `Spent: ₹...`, `Invest: ₹...`) so amounts never awkwardly break across lines.

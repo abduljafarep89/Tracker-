@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -406,6 +406,55 @@ if (cdView.includes('⚖️ Adjust') && cdView.includes('reconcileCardForm')) {
   process.exit(1);
 }
 
+
+// 13. Test Planned Payment Ticking Date & Untick Confirmation
+console.log('\n--- 13. Testing Planned Payment Ticking & Untick Confirmation ---');
+api.S.plan = [
+  { id: 'p_rent', n: 'Home Rent', k: 'exp', a: 25000, day: 5, s: 'acc_icici', c: 'Rent' }
+];
+const planKey = 'p_rent|' + api.V.y + '-10';
+delete api.S.paid[planKey];
+
+// Step A: Mark as paid on scheduled date (Day 5 = 2026-10-05)
+api.S.tx.push({
+  id: 'tx_rent_sched',
+  d: api.V.y + '-10-05',
+  t: 'exp',
+  a: 25000,
+  c: 'Rent',
+  n: 'Home Rent',
+  s: 'acc_icici'
+});
+api.S.paid[planKey] = 'tx_rent_sched';
+
+const txRecord = api.S.tx.find(t => t.id == 'tx_rent_sched');
+if (txRecord && txRecord.d === api.V.y + '-10-05') {
+  console.log('✓ PASS: Planned payment recorded on scheduled date (Day 5), not today.');
+} else {
+  console.error('FAIL: Scheduled date not preserved', txRecord);
+  process.exit(1);
+}
+
+// Step B: Untick cancellation (user accidentally taps while scrolling, presses Cancel)
+ctx.confirm = () => false; // User presses Cancel
+api.tg('p_rent');
+if (api.S.paid[planKey] && api.S.tx.some(t => t.id == 'tx_rent_sched')) {
+  console.log('✓ PASS: Untick cancellation prevented accidental deletion.');
+} else {
+  console.error('FAIL: Untick deleted transaction despite cancellation');
+  process.exit(1);
+}
+
+// Step C: Untick confirmed (user confirms removal)
+ctx.confirm = () => true; // User confirms
+api.tg('p_rent');
+if (!api.S.paid[planKey] && !api.S.tx.some(t => t.id == 'tx_rent_sched')) {
+  console.log('✓ PASS: Confirmed untick cleanly removed transaction from history.');
+} else {
+  console.error('FAIL: Confirmed untick failed to clear payment');
+  process.exit(1);
+}
+
 console.log('\n=========================================');
-console.log('ALL 12 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 13 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================\n');

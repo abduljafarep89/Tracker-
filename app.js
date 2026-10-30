@@ -1335,22 +1335,71 @@ function tidy() {
 
 const budForm = () => form('Monthly budget', [{ k: 'b', l: 'Total monthly spending budget', t: 'number', v: S.budget || '' }], r => { S.budget = +r.b || 0; save(); });
 
-const tg = i => {
-  const p = S.plan.find(x => x.id == i), k = i + '|' + ym(V.y, V.m);
-  if (S.paid[k]) {
-    S.tx = S.tx.filter(t => t.id != S.paid[k]);
-    delete S.paid[k];
-  } else {
-    let a = p.a;
-    if (!a) {
-      a = +prompt('Amount for ' + p.n + '?', pamt(p) || '') || 0;
-      if (!a) return;
-    }
-    const t = { id: id(), d: cur() ? iso(T) : dt(V.y, V.m, p.day), t: p.k, a, c: p.c || p.n, n: p.n, s: p.s };
+function markPlannedPaymentForm(p, k) {
+  const scheduledDate = dt(V.y, V.m, p.day);
+  const todayDate = iso(T);
+  const defaultAmt = pamt(p) || p.a || 0;
+  const typeLabel = p.k === 'inc' ? 'Received' : p.k === 'inv' ? 'Invested' : 'Paid';
+
+  const datePills = `
+    <div style="display:flex;gap:8px;margin:4px 0 8px">
+      <button type="button" onclick="document.querySelector('#dlg [name=d]').value='${scheduledDate}'" style="flex:1;min-height:34px;font-size:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
+        📅 Scheduled (${p.day} ${mo()})
+      </button>
+      <button type="button" onclick="document.querySelector('#dlg [name=d]').value='${todayDate}'" style="flex:1;min-height:34px;font-size:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
+        ⚡ Today (${new Date().toLocaleDateString('en-IN', {day:'numeric', month:'short'})})
+      </button>
+    </div>
+  `;
+
+  form(`Mark ${p.n} as ${typeLabel}`, [
+    { k: 'date_pills', l: 'Payment Date', h: datePills },
+    { k: 'd', l: 'Date (tap button above or pick custom date)', t: 'date', v: scheduledDate },
+    { k: 'a', l: 'Actual Amount (₹)', t: 'number', v: defaultAmt },
+    { k: 's', l: p.k === 'inc' ? 'Deposit into Account' : 'Paid from Account or Card', o: opts(p.k === 'exp'), v: p.s },
+    { k: 'n', l: 'Note (optional)', v: p.n }
+  ],
+  r => {
+    const amt = +r.a;
+    if (!amt || !r.s) return no('Amount and account are needed');
+    const payDate = r.d || scheduledDate;
+
+    delete r.date_pills;
+    const t = {
+      id: id(),
+      d: payDate,
+      t: p.k,
+      a: amt,
+      c: p.c || p.n,
+      n: r.n || p.n,
+      s: r.s
+    };
     S.tx.push(t);
     S.paid[k] = t.id;
+    save();
+    toast(`✓ Recorded ${p.n} (${f(amt)}) on ${payDate}`);
+  });
+}
+
+const tg = i => {
+  const p = S.plan.find(x => x.id == i), k = i + '|' + ym(V.y, V.m);
+  if (!p) return;
+
+  // 1. Unticking: confirmation to prevent accidental deletion while scrolling
+  if (S.paid[k]) {
+    const existingTx = S.tx.find(t => t.id == S.paid[k]);
+    const txDesc = existingTx ? `\n(recorded on ${existingTx.d} for ${f(existingTx.a)})` : '';
+    if (!confirm(`Unmark "${p.n}"?${txDesc}\nThis will remove the transaction from History.`)) return;
+
+    S.tx = S.tx.filter(t => t.id != S.paid[k]);
+    delete S.paid[k];
+    save();
+    toast(`Unmarked "${p.n}"`);
+    return;
   }
-  save();
+
+  // 2. Ticking: open pre-filled confirmation sheet with date selection
+  markPlannedPaymentForm(p, k);
 };
 
 function convertOld(j) {
