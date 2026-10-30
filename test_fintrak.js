@@ -435,19 +435,19 @@ if (txRecord && txRecord.d === api.V.y + '-10-05') {
   process.exit(1);
 }
 
-// Step B: Untick cancellation (user accidentally taps while scrolling, presses Cancel)
-ctx.confirm = () => false; // User presses Cancel
+// Step B: Untick without confirmation (user accidentally taps while scrolling)
 api.tg('p_rent');
 if (api.S.paid[planKey] && api.S.tx.some(t => t.id == 'tx_rent_sched')) {
-  console.log('✓ PASS: Untick cancellation prevented accidental deletion.');
+  console.log('✓ PASS: Untick bottom sheet prevented accidental deletion.');
 } else {
-  console.error('FAIL: Untick deleted transaction despite cancellation');
+  console.error('FAIL: Untick deleted transaction without confirmation');
   process.exit(1);
 }
 
-// Step C: Untick confirmed (user confirms removal)
-ctx.confirm = () => true; // User confirms
-api.tg('p_rent');
+// Step C: User confirms on bottom sheet (invokes onConfirm)
+if (ctx.window._lastConfirmSheet && ctx.window._lastConfirmSheet.onConfirm) {
+  ctx.window._lastConfirmSheet.onConfirm();
+}
 if (!api.S.paid[planKey] && !api.S.tx.some(t => t.id == 'tx_rent_sched')) {
   console.log('✓ PASS: Confirmed untick cleanly removed transaction from history.');
 } else {

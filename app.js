@@ -1335,6 +1335,44 @@ function tidy() {
 
 const budForm = () => form('Monthly budget', [{ k: 'b', l: 'Total monthly spending budget', t: 'number', v: S.budget || '' }], r => { S.budget = +r.b || 0; save(); });
 
+// Native In-App Bottom Sheet Confirmation Dialog (Replaces clunky browser popups)
+function confirmSheet(opts) {
+  if (typeof window !== 'undefined') window._lastConfirmSheet = opts;
+  const d = $('#dlg');
+  if (!d) return;
+
+  d.innerHTML = `
+    <div class="sheet-drag-handle" onclick="dlg.close()"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,${opts.color || 'var(--bad)'} 18%,transparent);color:${opts.color || 'var(--bad)'};display:flex;align-items:center;justify-content:center;font-size:22px;flex:none">${opts.icon || '⚠️'}</span>
+        <div style="flex:1;min-width:0">
+          <h3 style="margin:0;font-size:16px;color:var(--ink)">${e(opts.title || 'Confirm Action')}</h3>
+          ${opts.subtitle ? `<div class="m" style="font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(opts.subtitle)}</div>` : ''}
+        </div>
+      </div>
+      
+      ${opts.details ? `<div style="padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12.5px;line-height:1.5">${opts.details}</div>` : ''}
+
+      <div class="row" style="margin-top:6px;gap:8px">
+        <button type="button" id="confirmSheetCancelBtn" onclick="dlg.close()" style="flex:1;min-height:42px;font-size:13px">${opts.cancelLabel || 'Cancel'}</button>
+        <button type="button" id="confirmSheetActBtn" class="${opts.confirmClass || 'bad'}" style="flex:1;min-height:42px;font-size:13px;background:${opts.confirmClass === 'pri' ? 'var(--pri)' : 'var(--bad)'};color:#fff;border:0;font-weight:600">${opts.confirmLabel || 'Confirm'}</button>
+      </div>
+    </div>
+  `;
+
+  const actBtn = document.getElementById('confirmSheetActBtn');
+  if (actBtn) {
+    actBtn.onclick = () => {
+      d.close();
+      if (opts.onConfirm) opts.onConfirm();
+    };
+  }
+
+  if (d.showModal) d.showModal();
+  if (typeof history !== 'undefined') history.pushState({ t: V.t, dlg: 1 }, '');
+}
+
 function markPlannedPaymentForm(p, k) {
   const scheduledDate = dt(V.y, V.m, p.day);
   const todayDate = iso(T);
@@ -1385,16 +1423,29 @@ const tg = i => {
   const p = S.plan.find(x => x.id == i), k = i + '|' + ym(V.y, V.m);
   if (!p) return;
 
-  // 1. Unticking: confirmation to prevent accidental deletion while scrolling
+  // 1. Unticking: beautiful native bottom sheet confirmation
   if (S.paid[k]) {
     const existingTx = S.tx.find(t => t.id == S.paid[k]);
-    const txDesc = existingTx ? `\n(recorded on ${existingTx.d} for ${f(existingTx.a)})` : '';
-    if (!confirm(`Unmark "${p.n}"?${txDesc}\nThis will remove the transaction from History.`)) return;
-
-    S.tx = S.tx.filter(t => t.id != S.paid[k]);
-    delete S.paid[k];
-    save();
-    toast(`Unmarked "${p.n}"`);
+    confirmSheet({
+      icon: '↩️',
+      color: 'var(--warn)',
+      title: 'Unmark Payment?',
+      subtitle: p.n,
+      details: `
+        <div class="r" style="padding:2px 0"><span>Recorded Date:</span><b>${existingTx ? existingTx.d : 'Scheduled'}</b></div>
+        <div class="r" style="padding:2px 0"><span>Recorded Amount:</span><b style="color:var(--pri)">${existingTx ? f(existingTx.a) : f(pamt(p))}</b></div>
+        <div class="m" style="font-size:11.5px;margin-top:6px">Unmarking will delete this transaction from your History feed and mark this payment as pending.</div>
+      `,
+      cancelLabel: 'Keep as Paid',
+      confirmLabel: 'Yes, Unmark',
+      confirmClass: 'bad',
+      onConfirm: () => {
+        S.tx = S.tx.filter(t => t.id != S.paid[k]);
+        delete S.paid[k];
+        save();
+        toast(`✓ Unmarked "${p.n}"`);
+      }
+    });
     return;
   }
 
@@ -1445,23 +1496,44 @@ const mv = d => {
 function deletePerson(pid) {
   const p = (S.people || []).find(x => x.id == pid);
   if (!p) return;
-  if (p.balance !== 0) {
-    if (!confirm(`"${p.name}" has an active balance of ${f(p.balance)}. Remove them anyway?`)) return;
-  } else {
-    if (!confirm(`Remove settled contact "${p.name}" from your ledger?`)) return;
-  }
-  S.people = S.people.filter(x => x.id != pid);
-  save();
-  toast(`✓ Removed "${p.name}" from People Ledger`);
+  const isSettled = p.balance === 0;
+  confirmSheet({
+    icon: '👤',
+    color: isSettled ? 'var(--mut)' : 'var(--bad)',
+    title: isSettled ? 'Remove Settled Contact?' : 'Remove Contact with Active Balance?',
+    subtitle: p.name,
+    details: isSettled ?
+      `<div class="m" style="font-size:12px">"${e(p.name)}" has a settled balance of ₹0. Removing them cleans up your ledger list. Past transaction records remain safely in your History.</div>` :
+      `<div class="m" style="font-size:12px">"${e(p.name)}" has an active balance of <b style="color:${p.balance > 0 ? 'var(--ok)' : 'var(--bad)'}">${f(p.balance)}</b>. Are you sure you want to remove them from your ledger?</div>`,
+    cancelLabel: 'Cancel',
+    confirmLabel: 'Remove Person',
+    confirmClass: 'bad',
+    onConfirm: () => {
+      S.people = S.people.filter(x => x.id != pid);
+      save();
+      toast(`✓ Removed "${p.name}" from People Ledger`);
+    }
+  });
 }
 
 function clearAllSettledPeople() {
   const settled = (S.people || []).filter(p => p.balance === 0);
   if (!settled.length) return toast('No settled people to remove.');
-  if (!confirm(`Remove ${settled.length} settled ${settled.length === 1 ? 'person' : 'people'} (₹0 balance) from your ledger?`)) return;
-  S.people = S.people.filter(p => p.balance !== 0);
-  save();
-  toast(`✓ Removed ${settled.length} settled contacts`);
+  confirmSheet({
+    icon: '🧹',
+    color: 'var(--mut)',
+    title: 'Clear Settled Contacts?',
+    subtitle: `${settled.length} ${settled.length === 1 ? 'person' : 'people'} with ₹0 balance`,
+    details: `<div class="m" style="font-size:12px">This will remove all contacts who have settled in full. Past records remain safely in your History feed.</div>`,
+    cancelLabel: 'Cancel',
+    confirmLabel: `Clear ${settled.length} Contacts`,
+    confirmClass: 'bad',
+    onConfirm: () => {
+      S.people = S.people.filter(p => p.balance !== 0);
+      save();
+      toast(`✓ Removed ${settled.length} settled contacts`);
+    }
+  });
 }
 
 function peopleForm(o = {}) {

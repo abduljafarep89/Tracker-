@@ -114,6 +114,11 @@ Fintrak is an offline-first, mobile-optimized personal finance Progressive Web A
   * Tagged in History with the distinct badge: `[⚖️ Outside App Adjustment]`.
 
 
+
+### M. Native Bottom Sheet Confirmations (Zero Browser Popups)
+* **Replaced Clunky Browser Popups**: Completely removed raw browser `confirm(...)` dialogs (which displayed the domain name like `...github.io says` with clunky OS dialogs).
+* **Native In-App Bottom Sheets**: All confirmations (unmarking payments, deleting items, clearing settled contacts) now use Fintrak's dark-themed native bottom sheet (`confirmSheet`) with drag handles, contextual payment details (date and amount), and clean action buttons (`Keep as Paid` vs `Yes, Unmark`).
+
 ### L. Planned Payment Confirmation & Date Selection Sheet
 * **Prevents Accidental Unticks**:
   * Tapping the checkmark on an already-paid item opens a confirmation prompt (`Unmark "Rent"? This will remove the transaction from History.`), preventing accidental deletion while scrolling.
