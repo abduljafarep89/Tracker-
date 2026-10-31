@@ -5,7 +5,7 @@
 
 const $ = s => document.querySelector(s);
 const K = 'fintrak_v1';
-const T = new Date();
+let T = new Date();
 const pd = n => String(n).padStart(2, '0');
 const iso = d => d.getFullYear() + '-' + pd(d.getMonth() + 1) + '-' + pd(d.getDate());
 
@@ -2908,4 +2908,31 @@ if (typeof document !== 'undefined') {
 
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
+}
+
+
+// Automatic rollover to current month when app resumes or day changes past midnight
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const now = new Date();
+      if (now.getMonth() !== T.getMonth() || now.getFullYear() !== T.getFullYear()) {
+        T = now;
+        V.y = now.getFullYear();
+        V.m = now.getMonth();
+        render();
+      }
+    }
+  });
+}
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('focus', () => {
+    const now = new Date();
+    if (now.getMonth() !== T.getMonth() || now.getFullYear() !== T.getFullYear()) {
+      T = now;
+      V.y = now.getFullYear();
+      V.m = now.getMonth();
+      render();
+    }
+  });
 }

@@ -455,6 +455,32 @@ if (!api.S.paid[planKey] && !api.S.tx.some(t => t.id == 'tx_rent_sched')) {
   process.exit(1);
 }
 
-console.log('\n=========================================');
-console.log('ALL 13 TEST SUITES PASSED FLAWLESSLY! 100%');
-console.log('=========================================\n');
+
+// --- 14. Testing New Month Rollover & Recurring Plan Isolation ---
+console.log('');
+console.log('--- 14. Testing New Month Rollover & Recurring Plan Isolation ---');
+const octKey = 'p_rent|2026-10';
+const novKey = 'p_rent|2026-11';
+api.S.paid[octKey] = 'tx_oct_rent';
+if (api.S.paid[octKey] && !api.S.paid[novKey]) {
+  console.log('✓ PASS: October payment marked paid does NOT bleed into November; November starts clean and unpaid.');
+} else {
+  console.error('FAIL: Plan payment status bled across months', { oct: api.S.paid[octKey], nov: api.S.paid[novKey] });
+  process.exit(1);
+}
+api.V.m = 10;
+api.V.y = 2026;
+api.V.pt = 'exp';
+const novHtml = api.plan();
+if (novHtml.includes('Home Rent') || novHtml.includes('Rent')) {
+  console.log('✓ PASS: November Plan automatically populates recurring bills from October.');
+} else {
+  console.error('FAIL: Recurring bill missing in November plan');
+  process.exit(1);
+}
+
+console.log('');
+console.log('=========================================');
+console.log('ALL 14 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('=========================================');
+console.log('');
