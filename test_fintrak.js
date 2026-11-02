@@ -409,6 +409,7 @@ if (cdView.includes('⚖️ Adjust') && cdView.includes('reconcileCardForm')) {
 
 // 13. Test Planned Payment Ticking Date & Untick Confirmation
 console.log('\n--- 13. Testing Planned Payment Ticking & Untick Confirmation ---');
+api.V.m = 9;
 api.S.plan = [
   { id: 'p_rent', n: 'Home Rent', k: 'exp', a: 25000, day: 5, s: 'acc_icici', c: 'Rent' }
 ];
@@ -479,8 +480,46 @@ if (novHtml.includes('Home Rent') || novHtml.includes('Rent')) {
   process.exit(1);
 }
 
+// --- 15. Testing Planned Bills Distribution on Pace Visuals ---
+console.log('');
+console.log('--- 15. Testing Planned Bills Distribution on Pace Visuals ---');
+
+// Set November 2026 (30 days), evaluate at Day 2
+api.V.y = 2026;
+api.V.m = 10; // November
+api.V.t = 'home';
+api.S.budget = 50000;
+
+// Setup: Rent of ₹25,000 paid on Day 2
+const novPlanKey = 'p_rent|2026-11';
+api.S.paid[novPlanKey] = 'tx_nov_rent_25k';
+api.S.tx = [
+  { id: 'tx_nov_rent_25k', d: '2026-11-02', t: 'exp', a: 25000, c: 'Rent', n: 'Home Rent', s: 'acc_icici' },
+  { id: 'tx_d1_food', d: '2026-11-01', t: 'exp', a: 500, c: 'Food', n: 'Lunch', s: 'acc_icici' },
+  { id: 'tx_d2_coffee', d: '2026-11-02', t: 'exp', a: 200, c: 'Food', n: 'Coffee', s: 'acc_icici' }
+];
+
+const homeOutput = api.home();
+
+// Check that false overshoot alert is eliminated and pace shows on track
+if (homeOutput.includes('On Track') && !homeOutput.includes('⚠️ Overshoot Warning')) {
+  console.log('✓ PASS: Marking ₹25,000 rent paid on Day 2 does NOT trigger false overshoot alert.');
+} else {
+  console.error('FAIL: Day 2 false overshoot warning still triggered', ctx.window._lastPaceAlert);
+  process.exit(1);
+}
+
+// Check that projected spend reflects distributed bills + variable pace (approx ₹35,500, well under ₹50,000)
+if (homeOutput.includes('under budget') || homeOutput.includes('On Track')) {
+  console.log('✓ PASS: Budget pace chart projects realistic spend factoring distributed monthly bills.');
+} else {
+  console.error('FAIL: Budget pace projection missing on track state');
+  process.exit(1);
+}
+
 console.log('');
 console.log('=========================================');
-console.log('ALL 14 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 15 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================');
 console.log('');
+

@@ -1618,13 +1618,21 @@ function scrubPace(e) {
   const d = Math.max(1, Math.min(dn, Math.round(1 + ((svgX - 10) / 320) * (dn - 1))));
 
   const M = mt().filter(t => !t.adj);
+  const kCur = ym(V.y, V.m);
+  const paidPlanIds = new Set(Object.entries(S.paid || {}).filter(([k, txId]) => k.endsWith('|' + kCur)).map(([k, txId]) => txId));
+  const paidPlanExp = sum(M.filter(t => t.t == 'exp' && !t.reimb && paidPlanIds.has(t.id)));
+  const dailyPlanShare = dn > 0 ? (paidPlanExp / dn) : 0;
+
   let cu = 0;
   for (let i = 1; i <= d; i++) {
-    cu += sum(M.filter(t => t.t == 'exp' && +t.d.slice(8) == i));
+    const varDay = sum(M.filter(t => t.t == 'exp' && !t.reimb && !paidPlanIds.has(t.id) && +t.d.slice(8) == i));
+    cu += varDay + dailyPlanShare;
   }
-  const daySpend = sum(M.filter(t => t.t == 'exp' && +t.d.slice(8) == d));
+  const dayVar = sum(M.filter(t => t.t == 'exp' && !t.reimb && !paidPlanIds.has(t.id) && +t.d.slice(8) == d));
+  const daySpend = Math.round(dayVar + dailyPlanShare);
+  cu = Math.round(cu);
   const expectedPace = S.budget ? Math.round((S.budget / dn) * d) : 0;
-  const diff = S.budget ? cu - expectedPace : 0;
+  const diff = S.budget ? Math.round(cu - expectedPace) : 0;
 
   const curX = 10 + (d - 1) / (dn - 1) * 320;
   const curY = 120 - (cu / Math.max(S.budget || 1, cu || 1)) * 110;
@@ -1733,13 +1741,19 @@ function home() {
 
   const dn = new Date(V.y, V.m + 1, 0).getDate();
   const td = cur() ? T.getDate() : dn;
+  const kCur = ym(V.y, V.m);
+  const paidPlanIds = new Set(Object.entries(S.paid || {}).filter(([k, txId]) => k.endsWith('|' + kCur)).map(([k, txId]) => txId));
+  const paidPlanExp = sum(M.filter(t => t.t == 'exp' && !t.reimb && paidPlanIds.has(t.id)));
+  const dailyPlanShare = dn > 0 ? (paidPlanExp / dn) : 0;
+
   let cu = 0; const pt = [];
   for (let d = 1; d <= td; d++) {
-    cu += sum(M.filter(t => t.t == 'exp' && !t.reimb && +t.d.slice(8) == d));
-    pt.push([d, cu]);
+    const varDaySpend = sum(M.filter(t => t.t == 'exp' && !t.reimb && !paidPlanIds.has(t.id) && +t.d.slice(8) == d));
+    cu += varDaySpend + dailyPlanShare;
+    pt.push([d, Math.round(cu)]);
   }
   const dailyPace = td > 0 ? Math.round(cu / td) : 0;
-  const pj = cur() && td ? Math.round(dailyPace * dn) : cu;
+  const pj = cur() && td ? Math.round(dailyPace * dn) : Math.round(cu);
   const mx = Math.max(S.budget, pj, 1);
   const X = d => 10 + (d - 1) / (dn - 1) * 320;
   const Y = v => 120 - v / mx * 110;
@@ -2067,22 +2081,32 @@ function analytics() {
 
   const hasPriorData = txP.length > 0 && totExpP > 0;
 
-  // Cumulative daily spend
+  const cPaidPlanIds = new Set(Object.entries(S.paid || {}).filter(([k, txId]) => k.endsWith('|' + cKey)).map(([k, txId]) => txId));
+  const cPaidPlanExp = sum(expC.filter(t => cPaidPlanIds.has(t.id)));
+  const cDailyPlanShare = dn_c > 0 ? (cPaidPlanExp / dn_c) : 0;
+
+  const pPaidPlanIds = new Set(Object.entries(S.paid || {}).filter(([k, txId]) => k.endsWith('|' + pKey)).map(([k, txId]) => txId));
+  const pPaidPlanExp = sum(expP.filter(t => pPaidPlanIds.has(t.id)));
+  const pDailyPlanShare = dn_p > 0 ? (pPaidPlanExp / dn_p) : 0;
+
+  // Cumulative daily spend with paid planned bills distributed evenly across month
   let cCum = 0; const ptC = [];
   for (let d = 1; d <= dn_c; d++) {
-    const dayAmt = sum(expC.filter(t => +t.d.slice(8) == d));
+    const varDayAmt = sum(expC.filter(t => !cPaidPlanIds.has(t.id) && +t.d.slice(8) == d));
+    const dayAmt = varDayAmt + cDailyPlanShare;
     if (d <= d_eval) {
       cCum += dayAmt;
-      ptC.push([d, cCum]);
+      ptC.push([d, Math.round(cCum)]);
     }
   }
 
   let pCum = 0; const ptP = [];
   if (hasPriorData) {
     for (let d = 1; d <= dn_p; d++) {
-      const dayAmt = sum(expP.filter(t => +t.d.slice(8) == d));
+      const varDayAmt = sum(expP.filter(t => !pPaidPlanIds.has(t.id) && +t.d.slice(8) == d));
+      const dayAmt = varDayAmt + pDailyPlanShare;
       pCum += dayAmt;
-      ptP.push([d, pCum]);
+      ptP.push([d, Math.round(pCum)]);
     }
   }
 
