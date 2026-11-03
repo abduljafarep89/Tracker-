@@ -86,29 +86,49 @@ function togglePriv() {
 
 // Themes & Palettes
 const MODES = {
-  light: { bg: '#F4F5FA', card: '#FFFFFF', ink: '#1B1F3B', mut: '#4B5160', line: '#E4E6F2', ok: '#0F766E', warn: '#B45309', bad: '#B91C1C' },
+  light: { bg: '#F5F7FB', card: '#FFFFFF', ink: '#111827', mut: '#4B5563', line: '#E2E8F0', ok: '#0D9488', warn: '#D97706', bad: '#E11D48' },
+  dark: { bg: '#0F172A', card: '#1E293B', ink: '#F8FAFC', mut: '#94A3B8', line: '#334155', ok: '#34D399', warn: '#FBBF24', bad: '#F87171' },
+  midnight: { bg: '#0B0F19', card: '#111827', ink: '#F9FAFB', mut: '#9CA3AF', line: '#1F2937', ok: '#10B981', warn: '#F59E0B', bad: '#EF4444' },
   warm: { bg: '#FAF5EC', card: '#FFFDF8', ink: '#2B2118', mut: '#6B5A48', line: '#EADFCB', ok: '#0F766E', warn: '#B45309', bad: '#B91C1C' },
-  dark: { bg: '#10121F', card: '#1A1D33', ink: '#EEF0FF', mut: '#A9AEC9', line: '#2C3050', ok: '#4FD1C5', warn: '#F6AD55', bad: '#FC8181' },
-  black: { bg: '#000000', card: '#121214', ink: '#F4F4F5', mut: '#A1A1AA', line: '#27272A', ok: '#4FD1C5', warn: '#F6AD55', bad: '#FC8181' },
+  dracula: { bg: '#181622', card: '#221D30', ink: '#F8F8F2', mut: '#B3A1E6', line: '#352B4D', ok: '#50FA7B', warn: '#FFB86C', bad: '#FF5555' },
+  matcha: { bg: '#F4F7F2', card: '#FFFFFF', ink: '#1C2B1E', mut: '#546B58', line: '#DEE7DC', ok: '#2E7D32', warn: '#E65100', bad: '#C62828' },
+  champagne: { bg: '#FAF7F2', card: '#FFFFFF', ink: '#2A231C', mut: '#6E5F53', line: '#ECE3D7', ok: '#0F766E', warn: '#B45309', bad: '#9F1239' },
   nord: { bg: '#242933', card: '#2E3440', ink: '#ECEFF4', mut: '#D8DEE9', line: '#3B4252', ok: '#A3BE8C', warn: '#EBCB8B', bad: '#BF616A' },
   cyber: { bg: '#0A0814', card: '#141026', ink: '#F5F3FF', mut: '#A78BFA', line: '#27204A', ok: '#2DD4BF', warn: '#FBBF24', bad: '#F43F5E' },
-  sage: { bg: '#F2F6F3', card: '#FFFFFF', ink: '#1A2E22', mut: '#526B5C', line: '#DCE6DF', ok: '#059669', warn: '#D97706', bad: '#DC2626' }
+  sunset: { bg: '#19131A', card: '#241A26', ink: '#FFF5F5', mut: '#C4A5C7', line: '#3C2B3E', ok: '#34D399', warn: '#FB923C', bad: '#F43F5E' },
+  sage: { bg: '#F2F6F3', card: '#FFFFFF', ink: '#1A2E22', mut: '#526B5C', line: '#DCE6DF', ok: '#059669', warn: '#D97706', bad: '#DC2626' },
+  black: { bg: '#000000', card: '#121214', ink: '#F4F4F5', mut: '#A1A1AA', line: '#27272A', ok: '#4FD1C5', warn: '#F6AD55', bad: '#FC8181' }
 };
 
 const ACC = {
   Indigo: ['#4F46E5', '#4338CA', '#7C3AED', '#6D6AF0'],
-  Ocean: ['#0369A1', '#0C4A6E', '#0EA5E9', '#0284C7'],
-  Emerald: ['#047857', '#065F46', '#10B981', '#059669'],
-  Sunset: ['#C2410C', '#9A3412', '#EA580C', '#EA580C'],
-  Rose: ['#BE185D', '#9D174D', '#DB2777', '#DB2777'],
-  Graphite: ['#334155', '#1E293B', '#475569', '#64748B'],
+  Sapphire: ['#2563EB', '#1D4ED8', '#3B82F6', '#60A5FA'],
+  Ocean: ['#0284C7', '#0369A1', '#0EA5E9', '#38BDF8'],
+  Teal: ['#0D9488', '#0F766E', '#14B8A6', '#2DD4BF'],
+  Emerald: ['#059669', '#047857', '#10B981', '#34D399'],
+  Forest: ['#16A34A', '#15803D', '#22C55E', '#4ADE80'],
+  Lime: ['#65A30D', '#4D7C0F', '#84CC16', '#A3E635'],
+  Gold: ['#D97706', '#B45309', '#F59E0B', '#FBBF24'],
+  Amber: ['#EA580C', '#C2410C', '#F97316', '#FB923C'],
+  Sunset: ['#DC2626', '#B91C1C', '#EF4444', '#F87171'],
   Ruby: ['#E11D48', '#BE123C', '#9F1239', '#F43F5E'],
-  Gold: ['#D97706', '#B45309', '#92400E', '#F59E0B'],
-  Amethyst: ['#8B5CF6', '#7C3AED', '#6D28D9', '#A78BFA'],
-  Cyan: ['#0891B2', '#0E7490', '#155E75', '#06B6D4']
+  Rose: ['#DB2777', '#BE185D', '#EC4899', '#F472B6'],
+  Violet: ['#7C3AED', '#6D28D9', '#8B5CF6', '#A78BFA'],
+  Amethyst: ['#9333EA', '#7E22CE', '#A855F7', '#C084FC'],
+  Cyan: ['#0891B2', '#0E7490', '#06B6D4', '#22D3EE'],
+  Graphite: ['#475569', '#334155', '#64748B', '#94A3B8']
 };
 
-let TH = { m: 'auto', a: 'Indigo', c: 'Vivid', s: 'donut' };
+const FONTS = {
+  system: { n: 'System Native', desc: 'Apple / Android Default', f: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+  jakarta: { n: 'Plus Jakarta Sans', desc: 'Fintech Modern & Clean', f: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" },
+  inter: { n: 'Inter', desc: 'Swiss Neo-Grotesque', f: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" },
+  outfit: { n: 'Outfit', desc: 'Geometric Luxury', f: "'Outfit', 'Plus Jakarta Sans', sans-serif" },
+  mono: { n: 'JetBrains Mono', desc: 'Tech & Quant Finance', f: "'JetBrains Mono', 'SF Mono', Consolas, monospace" },
+  newsreader: { n: 'Newsreader', desc: 'Prestigious Editorial Serif', f: "'Newsreader', Georgia, 'Times New Roman', serif" }
+};
+
+let TH = { m: 'auto', a: 'Indigo', c: 'Vivid', s: 'donut', font: 'system' };
 try {
   TH = { ...TH, ...JSON.parse(localStorage.getItem('fintrak_theme') || '{}') };
 } catch (e) {}
@@ -123,6 +143,8 @@ function applyTheme() {
   r.setProperty('--pri', dk ? a[3] : a[0]);
   r.setProperty('--g1', a[1]);
   r.setProperty('--g2', a[2]);
+  const fontObj = FONTS[TH.font] || FONTS.system;
+  r.setProperty('--font-family', fontObj.f);
   r.colorScheme = dk ? 'dark' : 'light';
   const tm = document.querySelector('meta[name=theme-color]');
   if (tm) tm.content = M.bg;
@@ -1175,6 +1197,9 @@ const CPAL = {
   Vivid: ['#F59E0B', '#EC4899', '#2563EB', '#14B8A6', '#7C3AED', '#EF4444', '#84CC16', '#92400E', '#9CA3AF', '#0F766E', '#4F46E5', '#06B6D4', '#F97316', '#A855F7', '#65A30D', '#E11D48'],
   Pastel: ['#FBBF77', '#F9A8D4', '#93C5FD', '#5EEAD4', '#C4B5FD', '#FCA5A5', '#BEF264', '#D6A57A', '#D1D5DB', '#6EE7B7', '#A5B4FC', '#67E8F9', '#FDBA74', '#D8B4FE', '#86EFAC', '#FDA4AF'],
   Ocean: ['#0EA5E9', '#0369A1', '#14B8A6', '#0F766E', '#6366F1', '#38BDF8', '#22D3EE', '#1E3A8A', '#94A3B8', '#059669', '#2563EB', '#67E8F9', '#34D399', '#818CF8', '#0891B2', '#475569'],
+  Nordic: ['#88C0D0', '#81A1C1', '#5E81AC', '#8FBCBB', '#A3BE8C', '#EBCB8B', '#D08770', '#BF616A', '#B48EAD', '#4C566A', '#38BDF8', '#818CF8', '#34D399', '#F472B6', '#FBBF24', '#60A5FA'],
+  Sunset: ['#EA580C', '#F97316', '#F59E0B', '#E11D48', '#BE123C', '#DB2777', '#7C3AED', '#9333EA', '#D97706', '#C2410C', '#FB7185', '#F43F5E', '#FB923C', '#FBBF24', '#A855F7', '#6D28D9'],
+  Neon: ['#00F5D4', '#7B2CBF', '#F72585', '#4CC9F0', '#4361EE', '#3A0CA3', '#7209B7', '#06D6A0', '#FFD166', '#EF476F', '#118AB2', '#073B4C', '#10B981', '#6366F1', '#EC4899', '#F59E0B'],
   Earth: ['#B45309', '#9A3412', '#65A30D', '#78350F', '#CA8A04', '#DC2626', '#4D7C0F', '#A16207', '#A8A29E', '#166534', '#92400E', '#D97706', '#854D0E', '#BE123C', '#57534E', '#EA580C'],
   'Colour-blind safe': ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#6B7280', '#999999', '#44AA99', '#882255', '#117733', '#88CCEE', '#DDCC77', '#AA4499', '#332288']
 };
@@ -1777,7 +1802,23 @@ function home() {
   }
   window._lastPaceAlert = paceAlert;
 
-  const pace = S.budget ? `<svg viewBox="0 0 340 130" width=100% id=paceSvg role=img aria-label="Budget pace chart" style="touch-action:none;cursor:crosshair" onpointerdown="scrubPace(event)" onpointermove="if(event.buttons||event.pointerType==='touch')scrubPace(event)" onpointerup="unscrubPace()" onpointerleave="unscrubPace()"><line x1=10 y1=120 x2=330 y2=120 stroke="var(--line)"/><line x1="${X(1)}" y1="${Y(0)}" x2="${X(dn)}" y2="${Y(S.budget)}" stroke="var(--mut)" stroke-width=2 stroke-dasharray="5 4"/><polyline fill=none stroke="var(--pri)" stroke-width=3 stroke-linejoin=round points="${pt.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')}"/>${cur() ? `<line x1="${X(td)}" y1="${Y(cu)}" x2="${X(dn)}" y2="${Y(pj)}" stroke="${pj > S.budget ? 'var(--bad)' : 'var(--ok)'}" stroke-width=3 stroke-dasharray="3 4" stroke-linecap=round />` : ''}${overMarker}<line id=scrubLine x1=0 y1=10 x2=0 y2=120 stroke="var(--pri)" stroke-width=1.5 stroke-dasharray="2 2" style="display:none;pointer-events:none"/><circle id=scrubDot cx=0 cy=0 r=4.5 fill="var(--pri)" stroke="#fff" stroke-width=2 style="display:none;pointer-events:none"/></svg><div id=scrubTip style="min-height:36px">${paceAlert}</div>` : '<div class=m>Set a monthly budget in More to see your spending pace.</div>';
+  const pace = S.budget ? `<svg viewBox="0 0 340 130" width=100% id=paceSvg role=img aria-label="Budget pace chart" style="touch-action:none;cursor:crosshair;overflow:visible" onpointerdown="scrubPace(event)" onpointermove="if(event.buttons||event.pointerType==='touch')scrubPace(event)" onpointerup="unscrubPace()" onpointerleave="unscrubPace()">
+    <defs>
+      <linearGradient id="paceAreaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--pri)" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="var(--pri)" stop-opacity="0.0"/>
+      </linearGradient>
+    </defs>
+    <line x1=10 y1=120 x2=330 y2=120 stroke="var(--line)"/>
+    <line x1="${X(1)}" y1="${Y(0)}" x2="${X(dn)}" y2="${Y(S.budget)}" stroke="var(--mut)" stroke-width=1.8 stroke-dasharray="4 4" opacity="0.55"/>
+    ${pt.length > 1 ? `<polygon fill="url(#paceAreaGrad)" points="${X(1)},120 ${pt.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')} ${X(pt[pt.length - 1][0])},120"/>` : ''}
+    <polyline fill=none stroke="var(--pri)" stroke-width=3 stroke-linejoin=round stroke-linecap=round points="${pt.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')}"/>
+    ${cur() && td > 0 ? `<circle cx="${X(td)}" cy="${Y(cu)}" r="9" fill="var(--pri)" opacity="0.25"/><circle cx="${X(td)}" cy="${Y(cu)}" r="4.5" fill="var(--pri)" stroke="#fff" stroke-width="2"/>` : ''}
+    ${cur() ? `<line x1="${X(td)}" y1="${Y(cu)}" x2="${X(dn)}" y2="${Y(pj)}" stroke="${pj > S.budget ? 'var(--bad)' : 'var(--ok)'}" stroke-width=2.5 stroke-dasharray="3 4" stroke-linecap=round />` : ''}
+    ${overMarker}
+    <line id=scrubLine x1=0 y1=10 x2=0 y2=120 stroke="var(--pri)" stroke-width=1.5 stroke-dasharray="2 2" style="display:none;pointer-events:none"/>
+    <circle id=scrubDot cx=0 cy=0 r=5 fill="var(--pri)" stroke="#fff" stroke-width="2" style="display:none;pointer-events:none"/>
+  </svg><div id=scrubTip style="min-height:36px">${paceAlert}</div>` : '<div class=m>Set a monthly budget in More to see your spending pace.</div>';
 
   const cg = {};
   M.filter(t => t.t == 'exp' && !t.reimb).forEach(t => cg[CATG[t.c] || t.c || 'Other'] = (cg[CATG[t.c] || t.c || 'Other'] || 0) + t.a);
@@ -1962,19 +2003,27 @@ function cards() {
 
   const bankHub = `
   <div class=c>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <h3 style="margin:0">Bank Accounts & Cash</h3>
       <div style="display:flex;gap:6px">
-        <button onclick="accForm()" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">+ Bank</button>
-        <button onclick="txForm({t:'xfer'})" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">⇄ Transfer</button>
+        <button onclick="accForm()" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px">+ Bank</button>
+        <button onclick="txForm({t:'xfer'})" style="min-height:30px;padding:0 10px;font-size:12px;border-radius:8px">⇄ Transfer</button>
       </div>
     </div>
     ${S.acc.map(a => `
-      <div class=r onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))" style="cursor:pointer;padding:6px 0">
-        <span><i class=dot style="background:${colr(a.id)}"></i>${e(a.n)}</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <b>${f(accBal(a))}</b>
-          <button type=button onclick="event.stopPropagation();reconcileAccForm('${a.id}')" style="min-height:26px;padding:0 8px;font-size:11px;border-radius:6px;background:var(--bg);border:1px solid var(--line)" title="Adjust to actual bank balance">⚖️ Adjust</button>
+      <div class="account-card" onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="account-badge" style="background:linear-gradient(135deg, ${colr(a.id)}, color-mix(in srgb, ${colr(a.id)} 65%, #000))">
+            ${(e(a.n || 'B').slice(0, 2)).toUpperCase()}
+          </div>
+          <div>
+            <b style="font-size:14px">${e(a.n)}</b>
+            <div class=m style="font-size:11px">Primary Account</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <b style="font-size:15px">${f(accBal(a))}</b>
+          <button type=button onclick="event.stopPropagation();reconcileAccForm('${a.id}')" style="min-height:28px;padding:0 8px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px solid var(--line)" title="Adjust to actual bank balance">⚖️ Adjust</button>
         </div>
       </div>`).join('') || '<div class=m>No bank accounts added yet.</div>'}
   </div>`;
@@ -2750,22 +2799,63 @@ function pinSettingsForm() {
 
 const appear = () => `
 <div class=c>
-  <h3>Appearance</h3>
-  <div class=m style="margin-bottom:6px">Mode</div>
-  <div class=seg>
-    ${[['auto', 'Auto'], ['light', 'Light'], ['warm', 'Warm'], ['dark', 'Dark'], ['black', 'Black'], ['nord', 'Nord'], ['cyber', 'Cyber'], ['sage', 'Sage']].map(([k, l]) => `<button class="${TH.m == k ? 'on' : ''}" onclick="setTheme('m','${k}')">${l}</button>`).join('')}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <h3 style="margin:0">Theme & Visual Studio</h3>
+    <span class="badge-countdown" style="background:color-mix(in srgb,var(--pri) 15%,transparent);color:var(--pri)">Realtime Preview</span>
   </div>
-  <div class=m style="margin:12px 0 6px">Accent colour: ${TH.a}</div>
+  <div class=m style="font-size:12px;margin-bottom:12px">Customize themes, high-contrast modes, typography, and dynamic chart palettes.</div>
+
+  <!-- 1. Theme Modes -->
+  <div class=m style="font-weight:600;font-size:12.5px;margin-bottom:6px">Theme Mode (${Object.keys(MODES).length + 1} curated themes)</div>
+  <div class="theme-grid">
+    <button class="theme-card-btn ${TH.m == 'auto' ? 'on' : ''}" onclick="setTheme('m','auto')">
+      <div class="theme-preview-pill" style="background:linear-gradient(135deg,#fff 50%,#111 50%)"></div>
+      <div><b style="font-size:13px">Auto</b><div class=m style="font-size:10px">System Match</div></div>
+    </button>
+    ${Object.entries(MODES).map(([k, v]) => `
+      <button class="theme-card-btn ${TH.m == k ? 'on' : ''}" onclick="setTheme('m','${k}')">
+        <div class="theme-preview-pill" style="background:${v.bg};border-color:${v.line}"></div>
+        <div>
+          <b style="font-size:13px;text-transform:capitalize">${k}</b>
+          <div class=m style="font-size:10px">${k == 'black' ? 'AMOLED' : k == 'midnight' ? 'Navy Dark' : k == 'matcha' ? 'Organic' : k == 'dracula' ? 'Slate Violet' : k == 'champagne' ? 'Luxury Ivory' : 'Mode'}</div>
+        </div>
+      </button>`).join('')}
+  </div>
+
+  <!-- 2. Accent Colors -->
+  <div class=m style="font-weight:600;font-size:12.5px;margin:14px 0 6px">Accent Color: <b>${TH.a}</b></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    ${Object.entries(ACC).map(([n, a]) => `<button aria-label="${n}" aria-pressed="${TH.a == n}" onclick="setTheme('a','${n}')" style="width:48px;height:48px;border-radius:50%;padding:0;border:3px solid ${TH.a == n ? 'var(--ink)' : 'transparent'};background:linear-gradient(135deg,${a[1]},${a[2]})"></button>`).join('')}
+    ${Object.entries(ACC).map(([n, a]) => `
+      <button aria-label="${n}" title="${n}" aria-pressed="${TH.a == n}" onclick="setTheme('a','${n}')" style="width:40px;height:40px;border-radius:50%;padding:0;border:3px solid ${TH.a == n ? 'var(--ink)' : 'transparent'};background:linear-gradient(135deg,${a[1]},${a[2]});box-shadow:${TH.a == n ? '0 0 0 2px var(--pri)' : 'none'};cursor:pointer;transition:transform 0.15s" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'"></button>`).join('')}
   </div>
-  <div class=m style="margin:14px 0 6px">Chart colours: ${TH.c || 'Vivid'}</div>
+
+  <!-- 3. Typography & Fonts -->
+  <div class=m style="font-weight:600;font-size:12.5px;margin:16px 0 6px">App Font (${Object.keys(FONTS).length} typography choices)</div>
+  <div class="font-grid">
+    ${Object.entries(FONTS).map(([k, fObj]) => `
+      <button class="font-btn ${(TH.font || 'system') == k ? 'on' : ''}" onclick="setTheme('font','${k}')" style="font-family:${fObj.f}">
+        <b style="font-size:13px">${fObj.n}</b>
+        <span class=m style="font-size:10.5px">${fObj.desc}</span>
+      </button>`).join('')}
+  </div>
+
+  <!-- 4. Dynamic Chart Colors -->
+  <div class=m style="font-weight:600;font-size:12.5px;margin:16px 0 6px">Chart Colors & Visuals: <b>${TH.c || 'Vivid'}</b></div>
   <div style="display:flex;flex-direction:column;gap:8px">
-    ${[...Object.keys(CPAL), 'Accent'].map(n => `<button onclick="setTheme('c','${n}')" aria-pressed="${(TH.c || 'Vivid') == n}" style="width:100%;display:flex;justify-content:space-between;align-items:center;border:2px solid ${(TH.c || 'Vivid') == n ? 'var(--pri)' : 'var(--line)'}"><span>${n}</span><span style="display:flex;gap:3px">${cpal(n).slice(0, 8).map(c => `<i style="width:14px;height:14px;border-radius:50%;background:${c}"></i>`).join('')}</span></button>`).join('')}
+    ${[...Object.keys(CPAL), 'Accent'].map(n => `
+      <button onclick="setTheme('c','${n}')" aria-pressed="${(TH.c || 'Vivid') == n}" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;border:2px solid ${(TH.c || 'Vivid') == n ? 'var(--pri)' : 'var(--line)'};background:var(--card);color:var(--ink)">
+        <div>
+          <b style="font-size:13px">${n}</b>
+          ${n == 'Accent' ? '<span class=m style="font-size:11px"> (Harmonizes with active accent)</span>' : ''}
+        </div>
+        <span style="display:flex;gap:3px">${cpal(n).slice(0, 8).map(c => `<i style="width:14px;height:14px;border-radius:50%;background:${c}"></i>`).join('')}</span>
+      </button>`).join('')}
   </div>
-  <div class=m style="margin:14px 0 6px">Category chart style</div>
+
+  <!-- 5. Category Chart Style -->
+  <div class=m style="font-weight:600;font-size:12.5px;margin:16px 0 6px">Category Visual Presentation</div>
   <div class=seg>
-    ${[['donut', 'Donut'], ['bars', 'Bars']].map(([k, l]) => `<button class="${(TH.s || 'donut') == k ? 'on' : ''}" onclick="setTheme('s','${k}')">${l}</button>`).join('')}
+    ${[['donut', '🍩 Donut Chart'], ['bars', '📊 Progress Bars']].map(([k, l]) => `<button class="${(TH.s || 'donut') == k ? 'on' : ''}" onclick="setTheme('s','${k}')">${l}</button>`).join('')}
   </div>
 </div>`;
 

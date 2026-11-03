@@ -16,7 +16,7 @@ const ctx = {
     querySelector: () => ({ innerHTML: '', style: { setProperty: () => {} }, addEventListener: () => {}, querySelector: () => null, querySelectorAll: () => [], appendChild: () => {}, showModal: () => {}, close: () => {}, classList: { add: () => {}, remove: () => {}, toggle: () => {} } }),
     querySelectorAll: () => [],
     getElementById: () => null,
-    documentElement: { style: { setProperty: () => {} } },
+    documentElement: { style: { setProperty(k, v) { this[k] = v; } } },
     body: { classList: { add: () => {}, remove: () => {}, toggle: () => {} }, appendChild: () => {} }
   },
   localStorage: {
@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -517,9 +517,60 @@ if (homeOutput.includes('under budget') || homeOutput.includes('On Track')) {
   process.exit(1);
 }
 
+// --- 16. Testing Complete UI Overhaul: Themes, Fonts, Visual Cards, Dynamic Charts ---
+console.log('');
+console.log('--- 16. Testing Complete UI Overhaul: Themes, Fonts, Visual Cards, Dynamic Charts ---');
+
+// 16.1 Test New Themes & Accents
+api.setTheme('m', 'midnight');
+if (ctx.document.documentElement.style['--bg'] === '#0B0F19' && ctx.document.documentElement.style['--card'] === '#111827') {
+  console.log('✓ PASS: Midnight luxury theme applied custom variables (--bg: #0B0F19, --card: #111827).');
+} else {
+  console.error('FAIL: Midnight theme failed to apply CSS variables', ctx.document.documentElement.style);
+  process.exit(1);
+}
+
+// 16.2 Test Custom Typography / Font Switching
+api.setTheme('font', 'jakarta');
+if (ctx.document.documentElement.style['--font-family'] && ctx.document.documentElement.style['--font-family'].includes('Plus Jakarta Sans')) {
+  console.log('✓ PASS: Plus Jakarta Sans fintech typography applied to --font-family.');
+} else {
+  console.error('FAIL: Font switching failed to set --font-family', ctx.document.documentElement.style['--font-family']);
+  process.exit(1);
+}
+
+// 16.3 Test Dynamic Accent & Harmonic Chart Palettes
+api.setTheme('a', 'Teal');
+api.setTheme('c', 'Accent');
+const tealPalette = api.cpal('Accent');
+if (tealPalette.length === 16 && tealPalette[0].startsWith('hsl(')) {
+  console.log('✓ PASS: Dynamic Accent chart palette generated 16 harmonious hues from Teal.');
+} else {
+  console.error('FAIL: Dynamic Accent palette generation failed', tealPalette);
+  process.exit(1);
+}
+
+// 16.4 Test Visual Cards & Better Charts
+const cdViewOverhaul = api.cards();
+if (cdViewOverhaul.includes('account-card') && cdViewOverhaul.includes('account-badge') && cdViewOverhaul.includes('⚖️ Adjust')) {
+  console.log('✓ PASS: Cards screen displays elevated visual bank cards with bank badges.');
+} else {
+  console.error('FAIL: Visual bank account cards missing from cards view');
+  process.exit(1);
+}
+
+const hmViewOverhaul = api.home();
+if (hmViewOverhaul.includes('paceAreaGrad') && hmViewOverhaul.includes('polygon fill="url(#paceAreaGrad)"')) {
+  console.log('✓ PASS: Home budget chart features soft gradient area fill and glowing active marker.');
+} else {
+  console.error('FAIL: Gradient pace chart markup missing');
+  process.exit(1);
+}
+
 console.log('');
 console.log('=========================================');
-console.log('ALL 15 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 16 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================');
 console.log('');
+
 

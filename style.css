@@ -36,7 +36,7 @@ html {
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font: 15px/1.4 system-ui, -apple-system, sans-serif;
+  font: 15px/1.4 var(--font-family, system-ui, -apple-system, sans-serif);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   background: var(--bg);
@@ -454,3 +454,126 @@ dialog input, dialog select, dialog textarea {
 .pin-dot.filled { background: var(--pri); }
 .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; max-width: 280px; }
 .pin-btn { height: 64px; font-size: 22px; font-weight: 700; border-radius: 50%; background: var(--card); border: 1px solid var(--line); }
+
+/* --- Complete UI Overhaul Styles --- */
+:root {
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --card-radius: 20px;
+  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.c {
+  border-radius: var(--card-radius);
+  border: 1px solid var(--line);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;
+}
+
+/* Visual Bank Account Cards */
+.account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  margin-bottom: 8px;
+  transition: transform 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+.account-card:hover {
+  border-color: var(--pri);
+  transform: translateY(-1px);
+}
+.account-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #fff;
+  flex: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Theme Selector Grid */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+@media (min-width: 480px) {
+  .theme-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.theme-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  min-height: 48px;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.theme-card-btn.on {
+  border-color: var(--pri);
+  background: color-mix(in srgb, var(--pri) 8%, var(--card));
+  font-weight: 700;
+}
+.theme-preview-pill {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.15);
+  flex: none;
+}
+
+/* Font Selector Grid */
+.font-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.font-btn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 52px;
+  transition: border-color 0.15s;
+}
+.font-btn.on {
+  border-color: var(--pri);
+  background: color-mix(in srgb, var(--pri) 8%, var(--card));
+  font-weight: 700;
+}
+
+/* Visual Card Mockup Enhancement */
+.cc-chip {
+  width: 36px;
+  height: 26px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #FFE27D 0%, #D8A228 100%);
+  border: 1px solid #B88A1B;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+}
