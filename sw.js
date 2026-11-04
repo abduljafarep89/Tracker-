@@ -1,4 +1,4 @@
-const C = 'fintrak-v38';
+const C = 'fintrak-v39';
 const F = [
   './',
   'index.html',
@@ -31,7 +31,7 @@ self.addEventListener('activate', e => {
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(k => (k.startsWith('fintrak-') || k.startsWith('finplan-')) && k !== C)
+          .filter(k => k.startsWith('fintrak-') && k !== C)
           .map(k => caches.delete(k))
       )
     ).then(() => clients.claim())

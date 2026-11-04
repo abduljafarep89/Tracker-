@@ -567,10 +567,37 @@ if (hmViewOverhaul.includes('paceAreaGrad') && hmViewOverhaul.includes('polygon 
   process.exit(1);
 }
 
+// --- 17. Testing Side-by-Side Coexistence with FinPlan ---
+console.log('');
+console.log('--- 17. Testing Side-by-Side Coexistence with FinPlan ---');
+
+// Set a mock FinPlan dataset in localStorage
+const mockFinPlanData = JSON.stringify({ app: 'FinPlan', months: { 'Oct-2026': { expenses: [] } } });
+ctx.localStorage.setItem('finplan_v1', mockFinPlanData);
+
+// Simulate fresh Fintrak load without existing fintrak_v1
+ctx.localStorage.removeItem('fintrak_v1');
+const freshCtx = { ...ctx };
+vm.createContext(freshCtx);
+vm.runInContext(code, freshCtx);
+
+// Check that finplan_v1 was NOT deleted or overwritten
+const preservedFinPlan = ctx.localStorage.getItem('finplan_v1');
+if (preservedFinPlan === mockFinPlanData) {
+  console.log('✓ PASS: Fintrak does not read, overwrite, or delete finplan_v1 from localStorage.');
+} else {
+  console.error('FAIL: Fintrak altered or deleted finplan_v1 data!', preservedFinPlan);
+  process.exit(1);
+}
+
+// Restore fintrak data
+ctx.localStorage.setItem('fintrak_v1', JSON.stringify(api.S));
+
 console.log('');
 console.log('=========================================');
-console.log('ALL 16 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 17 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================');
 console.log('');
+
 
 

@@ -18,12 +18,11 @@ let S = null;
 try {
   S = JSON.parse(localStorage.getItem(K) || 'null');
   if (!S) {
-    const legacy = localStorage.getItem('finplan_v1') || localStorage.getItem('tracker_multi_row_mobile_suite');
+    const legacy = localStorage.getItem('tracker_multi_row_mobile_suite');
     if (legacy) {
       const p = JSON.parse(legacy);
       S = p.months ? convertOld(p) : p;
       localStorage.setItem(K, JSON.stringify(S));
-      localStorage.removeItem('finplan_v1'); // Clean up duplicate key
     }
   }
 } catch (e) {
@@ -543,10 +542,16 @@ const ld = i => {
   r.onload = () => {
     try {
       let j = JSON.parse(r.result);
-      if (j._fintrak_protected) {
+      if (j._fintrak_protected || j._finplan_protected) {
         const pass = prompt('Enter the backup password/PIN:');
-        if (!pass || btoa(pass).slice(0, 10) !== j.hash) return alert('Incorrect password! Restore aborted.');
-        j = JSON.parse(decodeURIComponent(escape(atob(j.data))));
+        if (j.hash && (!pass || btoa(pass).slice(0, 10) !== j.hash)) return alert('Incorrect password! Restore aborted.');
+        if (j.data) {
+          try {
+            j = JSON.parse(decodeURIComponent(escape(atob(j.data))));
+          } catch(e) {
+            return alert('Could not decrypt backup. Incorrect password or invalid format.');
+          }
+        }
       }
       if (j.months) {
         if (!confirm('Previous tracker backup detected. Import all accounts, cards, plan, and transactions?')) return;
