@@ -209,6 +209,46 @@ const ym = (y, m) => y + '-' + pd(m + 1);
 const cur = () => V.y == T.getFullYear() && V.m == T.getMonth();
 const mt = () => S.tx.filter(t => t.d.slice(0, 7) == ym(V.y, V.m));
 const dt = (y, m, d) => iso(new Date(y, m, Math.min(d, new Date(y, m + 1, 0).getDate())));
+const WEEKDAYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+const WEEKDAY_NAMES = { sun: 'Friday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday' };
+Object.assign(WEEKDAY_NAMES, { sun: 'Sunday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday' });
+
+function pDay(p, y = V.y, m = V.m) {
+  if (p && p.rule) {
+    const parts = String(p.rule).toLowerCase().split('-');
+    const nth = parts[0];
+    const wdStr = parts[1];
+    if (wdStr && wdStr in WEEKDAYS) {
+      const targetWd = WEEKDAYS[wdStr];
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      if (nth === 'last') {
+        const lastDayOfWeek = new Date(y, m, daysInMonth).getDay();
+        return daysInMonth - ((lastDayOfWeek - targetWd + 7) % 7);
+      }
+      const n = parseInt(nth, 10) || 1;
+      const firstDayOfWeek = new Date(y, m, 1).getDay();
+      const firstOccurrence = 1 + ((targetWd - firstDayOfWeek + 7) % 7);
+      const targetDate = firstOccurrence + (n - 1) * 7;
+      return Math.min(daysInMonth, targetDate);
+    }
+  }
+  return (p && +p.day) || 1;
+}
+
+function pDayLabel(p, y = V.y, m = V.m) {
+  if (p && p.rule) {
+    const parts = String(p.rule).toLowerCase().split('-');
+    const nth = parts[0];
+    const wdStr = parts[1];
+    if (wdStr && wdStr in WEEKDAYS) {
+      const nthLabel = nth === 'last' ? 'Last' : nth === '1' ? '1st' : nth === '2' ? '2nd' : nth === '3' ? '3rd' : nth === '4' ? '4th' : nth === '5' ? '5th' : nth;
+      const actualDay = pDay(p, y, m);
+      return `${nthLabel} ${WEEKDAY_NAMES[wdStr]} (Day ${actualDay})`;
+    }
+  }
+  return `Day ${p && p.day ? p.day : 1}`;
+}
+
 const mo = () => new Date(V.y, V.m).toLocaleString('en-IN', { month: 'short', year: 'numeric' }); // Compact "Oct 2026"
 const src = i => (S.acc.find(x => x.id == i) || S.cards.find(x => x.id == i) || { n: '-' }).n;
 const accBal = a => (+a.o || 0) + S.tx.reduce((s, t) => s + (t.s == a.id ? (t.t == 'inc' ? t.a : -t.a) : 0) + (t.t == 'xfer' && t.to == a.id ? t.a : 0), 0);
@@ -441,7 +481,7 @@ END:VEVENT`);
 
   const key = ym(V.y, V.m);
   PL(key).filter(p => p.k == 'exp' && !S.paid[p.id + '|' + key]).forEach(p => {
-    const dStr = dt(V.y, V.m, p.day);
+    const dStr = dt(V.y, V.m, pDay(p, V.y, V.m));
     const start = dStr.replace(/-/g, '');
     events.push(`BEGIN:VEVENT
 SUMMARY:Bill Due: ${p.n} (₹${pamt(p)})
@@ -998,19 +1038,66 @@ function cardForm(o = {}) {
 }
 
 function planForm(o = {}) {
+  const ruleOpts = [
+    ['', 'Specific Day of Month (e.g. 5th, 15th)'],
+    ['1-fri', '1st Friday of month'],
+    ['2-fri', '2nd Friday of month'],
+    ['3-fri', '3rd Friday of month'],
+    ['4-fri', '4th Friday of month'],
+    ['last-fri', 'Last Friday of month'],
+    ['1-mon', '1st Monday of month'],
+    ['2-mon', '2nd Monday of month'],
+    ['3-mon', '3rd Monday of month'],
+    ['4-mon', '4th Monday of month'],
+    ['last-mon', 'Last Monday of month'],
+    ['1-sat', '1st Saturday of month'],
+    ['2-sat', '2nd Saturday of month'],
+    ['3-sat', '3rd Saturday of month'],
+    ['4-sat', '4th Saturday of month'],
+    ['last-sat', 'Last Saturday of month'],
+    ['1-sun', '1st Sunday of month'],
+    ['2-sun', '2nd Sunday of month'],
+    ['3-sun', '3rd Sunday of month'],
+    ['4-sun', '4th Sunday of month'],
+    ['last-sun', 'Last Sunday of month'],
+    ['1-thu', '1st Thursday of month'],
+    ['2-thu', '2nd Thursday of month'],
+    ['3-thu', '3rd Thursday of month'],
+    ['4-thu', '4th Thursday of month'],
+    ['last-thu', 'Last Thursday of month'],
+    ['1-tue', '1st Tuesday of month'],
+    ['2-tue', '2nd Tuesday of month'],
+    ['3-tue', '3rd Tuesday of month'],
+    ['4-tue', '4th Tuesday of month'],
+    ['last-tue', 'Last Tuesday of month'],
+    ['1-wed', '1st Wednesday of month'],
+    ['2-wed', '2nd Wednesday of month'],
+    ['3-wed', '3rd Wednesday of month'],
+    ['4-wed', '4th Wednesday of month'],
+    ['last-wed', 'Last Wednesday of month']
+  ];
+
   form(o.id ? 'Edit planned item' : 'New planned item', [
-    { k: 'n', l: 'Name (e.g. Home loan EMI, SIP)', v: o.n },
+    { k: 'n', l: 'Name (e.g. Home loan EMI, SIP, Allowance)', v: o.n },
     { k: 'k', l: 'Type', o: [['exp', 'Payment'], ['inv', 'Investment'], ['inc', 'Expected income']], v: o.k || 'exp' },
     { k: 'a', l: 'Amount per month', t: 'number', v: o.a },
-    { k: 'day', l: 'Day of month', t: 'number', v: o.day || 1 },
+    { k: 'rule', l: 'Schedule Recurrence', o: ruleOpts, v: o.rule || '' },
+    { k: 'day', l: 'Day of month (1-31, used if specific day selected)', t: 'number', v: o.day || 1 },
     { k: 's', l: 'Account or card', o: opts(1), v: o.s },
     { k: 'c', l: 'Category', h: catSel(o.k || 'exp', o.c) },
     { k: 'rep', l: 'Repeats', o: [['m', 'Every month'], ['1', 'This month only (stops after it)']], v: o.end ? '1' : 'm' }
   ],
   r => {
     r.a = +r.a;
-    r.day = +r.day;
-    if (!r.n || !r.a || !r.s || r.day < 1 || r.day > 31) return no('Name, amount, source and day (1-31) are needed');
+    if (r.rule) {
+      r.day = pDay({ rule: r.rule }, V.y, V.m);
+    } else {
+      r.day = +r.day;
+      r.rule = '';
+    }
+    if (!r.n || !r.a || !r.s || (!r.rule && (r.day < 1 || r.day > 31))) {
+      return no('Name, amount, source and valid schedule are needed');
+    }
     if (r.k != 'exp' && S.cards.some(c => c.id == r.s)) return no('Investments and income must use a bank account');
     const k = ym(V.y, V.m), mn = mo();
     if (r.rep == '1') r.end = k; else if (o.end) r.end = '';
@@ -1404,7 +1491,7 @@ function confirmSheet(opts) {
 }
 
 function markPlannedPaymentForm(p, k) {
-  const scheduledDate = dt(V.y, V.m, p.day);
+  const scheduledDate = dt(V.y, V.m, pDay(p, V.y, V.m));
   const todayDate = iso(T);
   const defaultAmt = pamt(p) || p.a || 0;
   const typeLabel = p.k === 'inc' ? 'Received' : p.k === 'inv' ? 'Invested' : 'Paid';
@@ -1412,7 +1499,7 @@ function markPlannedPaymentForm(p, k) {
   const datePills = `
     <div style="display:flex;gap:8px;margin:4px 0 8px">
       <button type="button" onclick="document.querySelector('#dlg [name=d]').value='${scheduledDate}'" style="flex:1;min-height:34px;font-size:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
-        📅 Scheduled (${p.day} ${mo()})
+        📅 Scheduled (${pDayLabel(p, V.y, V.m)})
       </button>
       <button type="button" onclick="document.querySelector('#dlg [name=d]').value='${todayDate}'" style="flex:1;min-height:34px;font-size:12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)">
         ⚡ Today (${new Date().toLocaleDateString('en-IN', {day:'numeric', month:'short'})})
@@ -2412,7 +2499,7 @@ const EL = { exp: 'Payment', inv: 'Investment', inc: 'Income', due: 'Card bill d
 function cal() {
   const P = cpal(), EColor = { exp: P[0], inv: P[4], inc: P[3], due: P[1], stmt: P[8] };
   const y = V.y, m = V.m, dn = new Date(y, m + 1, 0).getDate(), k = ym(y, m), fd = new Date(y, m, 1).getDay(), td = cur() ? T.getDate() : 0, sd = V.cd && V.cd <= dn ? V.cd : (td || 1), E = [], dd = x => +x.slice(8);
-  PL(k).forEach(p => E.push({ d: dd(dt(y, m, p.day)), k: p.k, n: p.n, a: pamt(p), id: p.id, done: !!S.paid[p.id + '|' + k] }));
+  PL(k).forEach(p => E.push({ d: dd(dt(y, m, pDay(p, y, m))), k: p.k, n: p.n, a: pamt(p), id: p.id, done: !!S.paid[p.id + '|' + k] }));
   S.cards.forEach(c => {
     const b = bill(c, y, m);
     E.push({ d: dd(dt(y, m, c.bill)), k: 'stmt', n: c.n, a: 0 });
@@ -2573,7 +2660,7 @@ function plan() {
     }).join('') : '<div class=m>No category budgets configured yet. Tap Edit Limits to set caps for Fuel, Food, Groceries, etc.</div>'}
   </div>`;
   const d = p => S.paid[p.id + '|' + k];
-  const L = PL(k).filter(p => p.k == pt).sort((a, b) => (!!a.end - !!b.end) || a.day - b.day);
+  const L = PL(k).filter(p => p.k == pt).sort((a, b) => (!!a.end - !!b.end) || pDay(a, V.y, V.m) - pDay(b, V.y, V.m));
   const tot = sum(L.map(p => ({ a: pamt(p) })));
   const dn = sum(L.filter(d).map(p => ({ a: pamt(p) })));
   const bl = S.cards.map(c => ({ c, b: bill(c, V.y, V.m) })).filter(x => x.b.billed || x.b.pay);
@@ -2593,7 +2680,7 @@ function plan() {
         <button class="ck ${d(p) ? 'on' : ''}" onclick="tg('${p.id}')" aria-label="Mark ${e(p.n)}">${d(p) ? '✓' : ''}</button>
         <div onclick="planForm(S.plan.find(x=>x.id=='${p.id}'))" style="flex:1">
           <b>${e(p.n)}</b>
-          <div class=m>Day ${p.day} · ${chip(p.s)}${p.end ? (p.from == p.end ? ' · this month only' : ' · until ' + new Date(+p.end.slice(0, 4), +p.end.slice(5) - 1).toLocaleString('en-IN', { month: 'short' })) : ''}</div>
+          <div class=m>${pDayLabel(p, V.y, V.m)} · ${chip(p.s)}${p.end ? (p.from == p.end ? ' · this month only' : ' · until ' + new Date(+p.end.slice(0, 4), +p.end.slice(5) - 1).toLocaleString('en-IN', { month: 'short' })) : ''}</div>
         </div>
         <b>${f(pamt(p))}</b>
       </div>

@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS, pDay, pDayLabel })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -593,11 +593,68 @@ if (preservedFinPlan === mockFinPlanData) {
 // Restore fintrak data
 ctx.localStorage.setItem('fintrak_v1', JSON.stringify(api.S));
 
+// --- 18. Testing Relative Weekday Recurrence (Nth Friday, etc.) ---
+console.log('');
+console.log('--- 18. Testing Relative Weekday Recurrence (Nth Friday, etc.) ---');
+
+// November 2026 tests (Nov 1 is Sunday)
+const novY = 2026, novM = 10; // 0-indexed month 10 = November
+const fri1 = api.pDay({ rule: '1-fri' }, novY, novM);
+const fri2 = api.pDay({ rule: '2-fri' }, novY, novM);
+const fri3 = api.pDay({ rule: '3-fri' }, novY, novM);
+const fri4 = api.pDay({ rule: '4-fri' }, novY, novM);
+const friLast = api.pDay({ rule: 'last-fri' }, novY, novM);
+
+if (fri1 === 6 && fri2 === 13 && fri3 === 20 && fri4 === 27 && friLast === 27) {
+  console.log('✓ PASS: November 2026 Friday recurrence calculated accurately (6th, 13th, 20th, 27th).');
+} else {
+  console.error('FAIL: Friday recurrence calculation incorrect in Nov 2026', { fri1, fri2, fri3, fri4, friLast });
+  process.exit(1);
+}
+
+// December 2026 tests (Dec 1 is Tuesday)
+const decY = 2026, decM = 11; // 0-indexed month 11 = December
+const decFri2 = api.pDay({ rule: '2-fri' }, decY, decM);
+const decFriLast = api.pDay({ rule: 'last-fri' }, decY, decM);
+
+if (decFri2 === 11 && decFriLast === 25) {
+  console.log('✓ PASS: December 2026 relative dates dynamically adjusted (2nd Friday = Dec 11, Last Friday = Dec 25).');
+} else {
+  console.error('FAIL: December relative calculation incorrect', { decFri2, decFriLast });
+  process.exit(1);
+}
+
+// Check label generation
+const label = api.pDayLabel({ rule: '2-fri' }, novY, novM);
+if (label === '2nd Friday (Day 13)') {
+  console.log('✓ PASS: pDayLabel generated readable schedule label: "' + label + '".');
+} else {
+  console.error('FAIL: pDayLabel incorrect', label);
+  process.exit(1);
+}
+
+// Check integration in Plan UI
+api.V.y = 2026;
+api.V.m = 10;
+api.V.pt = 'exp';
+api.S.plan = [
+  { id: 'p_weekly_allowance', n: 'Weekly Allowance', k: 'exp', a: 5000, rule: '2-fri', s: 'acc_icici', c: 'Food' }
+];
+
+const planHtml = api.plan();
+if (planHtml.includes('Weekly Allowance') && planHtml.includes('2nd Friday (Day 13)')) {
+  console.log('✓ PASS: Plan tab displays relative recurrence schedule ("2nd Friday (Day 13)").');
+} else {
+  console.error('FAIL: Relative recurrence label missing in plan tab', planHtml);
+  process.exit(1);
+}
+
 console.log('');
 console.log('=========================================');
-console.log('ALL 17 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 18 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================');
 console.log('');
+
 
 
 
