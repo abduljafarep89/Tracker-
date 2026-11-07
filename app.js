@@ -2464,20 +2464,26 @@ function cards() {
       </div>
     </div>
     ${S.acc.map(a => `
-      <div class="account-card" onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))">
-        <div style="display:flex;align-items:center;gap:10px">
+      <div class="account-card" onclick="accForm(S.acc.find(x=>x.id=='${a.id}'))" style="gap:10px">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
           <div class="account-badge" style="background:linear-gradient(135deg, ${colr(a.id)}, color-mix(in srgb, ${colr(a.id)} 65%, #000))">
             ${(e(a.n || 'B').slice(0, 2)).toUpperCase()}
           </div>
-          <div>
-            <b style="font-size:14px">${e(a.n)}</b>
-            <div class=m style="font-size:11px">Primary Account</div>
+          <div style="min-width:0">
+            <b style="font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${e(a.n)}</b>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+              <button type=button onclick="event.stopPropagation();V.t='hist';V.accFilter='${a.id}';render()" style="min-height:24px;padding:0 8px;font-size:11px;border-radius:6px;background:var(--card);border:1px solid var(--line);color:var(--pri);font-weight:600;display:inline-flex;align-items:center;gap:3px" title="View account statement and transactions">
+                📄 Statement
+              </button>
+              <button type=button onclick="event.stopPropagation();reconcileAccForm('${a.id}')" style="min-height:24px;padding:0 8px;font-size:11px;border-radius:6px;background:var(--card);border:1px solid var(--line);color:var(--mut);font-weight:600;display:inline-flex;align-items:center;gap:3px" title="Adjust to actual bank balance">
+                ⚖️ Adjust
+              </button>
+            </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <b style="font-size:15px">${f(accBal(a))}</b>
-          <button type=button onclick="event.stopPropagation();V.t='hist';V.accFilter='${a.id}';render()" style="min-height:28px;padding:0 8px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px solid var(--line)" title="View statement and check for mismatches">📄 Statement</button>
-          <button type=button onclick="event.stopPropagation();reconcileAccForm('${a.id}')" style="min-height:28px;padding:0 8px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px solid var(--line)" title="Adjust to actual bank balance">⚖️ Adjust</button>
+        <div style="text-align:right;flex:none;margin-left:8px">
+          <div class="big" style="font-size:17px;font-weight:700;line-height:1.2">${f(accBal(a))}</div>
+          <div class=m style="font-size:10.5px;margin-top:2px">Balance</div>
         </div>
       </div>`).join('') || '<div class=m>No bank accounts added yet.</div>'}
   </div>`;
@@ -2519,6 +2525,7 @@ function cards() {
             <svg width=16 height=16 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.85"><path d="M5 8.5a7 7 0 0 1 0 7"/><path d="M8.5 6a10.5 10.5 0 0 1 0 12"/><path d="M12 3.5a14 14 0 0 1 0 17"/></svg>
           </div>
           <div style="display:flex;gap:6px">
+            <button class=gb onclick="V.t='hist';V.accFilter='${c.id}';render()" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px" title="View card statement & check for mismatches">📄 Statement</button>
             <button class=gb onclick="reconcileCardForm('${c.id}')" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px" title="Adjust live card balance">⚖️ Adjust</button>
             <button class=gb onclick="cardForm(S.cards.find(x=>x.id=='${c.id}'))" style="min-height:30px;padding:0 8px;font-size:11.5px;border-radius:8px">Edit</button>
           </div>
