@@ -43,7 +43,7 @@ vm.createContext(ctx);
 const code = fs.readFileSync('app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS, pDay, pDayLabel })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS, pDay, pDayLabel, parseBankStatementText, deduplicateTransactions, openStatementImportDialog })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -649,11 +649,65 @@ if (planHtml.includes('Weekly Allowance') && planHtml.includes('2nd Friday (Day 
   process.exit(1);
 }
 
+// --- 19. Testing Account-Specific Filtering & Bank CSV/Statement Smart Deduplication ---
+console.log('');
+console.log('--- 19. Testing Account-Specific Filtering & Bank CSV/Statement Smart Deduplication ---');
+
+// 19.1 Account & Period Filtering in History
+api.S.acc = [
+  { id: 'acc_hdfc', n: 'HDFC Salary', o: 50000 },
+  { id: 'acc_icici', n: 'ICICI Savings', o: 20000 }
+];
+api.S.tx = [
+  { id: 'tx_h1', d: '2026-11-02', t: 'exp', a: 1200, c: 'Groceries', n: 'Nature Basket', s: 'acc_hdfc' },
+  { id: 'tx_i1', d: '2026-11-03', t: 'exp', a: 450, c: 'Restaurant & takeaway', n: 'Swiggy', s: 'acc_icici' },
+  { id: 'tx_h2', d: '2026-11-04', t: 'inc', a: 80000, c: 'Other income', n: 'Salary Credit', s: 'acc_hdfc' }
+];
+
+// Test filtering by account
+api.V.accFilter = 'acc_hdfc';
+api.V.dateFrom = '2026-11-01';
+api.V.dateTo = '2026-11-30';
+api.V.hf = 'all';
+const histFiltered = api.hist();
+
+if (histFiltered.includes('Nature Basket') && histFiltered.includes('Salary Credit') && !histFiltered.includes('Swiggy')) {
+  console.log('✓ PASS: History displays transactions filtered specifically to HDFC Salary within date period.');
+} else {
+  console.error('FAIL: Account-specific filtering failed in History', histFiltered);
+  process.exit(1);
+}
+
+// 19.2 Bank CSV / Statement Parsing
+const sampleBankCSV = `Date,Narration,Withdrawal,Deposit
+02/11/2026,NATURE BASKET GROCERY,1200.00,
+05/11/2026,SHELL PETROL PUMP,2500.00,
+06/11/2026,DIVIDEND RECEIVED,,3400.00`;
+
+const parsedRows = api.parseBankStatementText(sampleBankCSV);
+if (parsedRows.length === 3 && parsedRows[0].a === 1200 && parsedRows[1].c === 'Fuel' && parsedRows[2].t === 'inc') {
+  console.log('✓ PASS: Bank CSV parsed dates, descriptions, categories, and debit/credit amounts accurately.');
+} else {
+  console.error('FAIL: Bank CSV parsing failed', parsedRows);
+  process.exit(1);
+}
+
+// 19.3 Smart Deduplication (Only add unrecorded transactions)
+const dedup = api.deduplicateTransactions(parsedRows, 'acc_hdfc');
+// NATURE BASKET on 2026-11-02 with amount 1200 already exists in HDFC
+if (dedup.duplicateItems.length === 1 && dedup.newItems.length === 2) {
+  console.log('✓ PASS: Deduplication identified existing ₹1,200 transaction; only 2 new unrecorded items queued for import.');
+} else {
+  console.error('FAIL: Deduplication mismatch', dedup);
+  process.exit(1);
+}
+
 console.log('');
 console.log('=========================================');
-console.log('ALL 18 TEST SUITES PASSED FLAWLESSLY! 100%');
+console.log('ALL 19 TEST SUITES PASSED FLAWLESSLY! 100%');
 console.log('=========================================');
 console.log('');
+
 
 
 

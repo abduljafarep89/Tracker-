@@ -560,6 +560,367 @@ async function bk(encrypt = false, password = '') {
   render();
 }
 
+
+// =========================================================================
+// Bank Statement (CSV / TSV / Excel Text) Parser & Smart Deduplication Engine
+// =========================================================================
+
+function parseCSVLine(text) {
+  const p = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQuotes && text[i + 1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (c === ',' && !inQuotes) {
+      p.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  p.push(cur);
+  return p.map(s => s.trim());
+}
+
+function parseDateCell(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  // 1. ISO YYYY-MM-DD
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s)) {
+    const parts = s.slice(0, 10).split(/[-/]/);
+    return `${parts[0]}-${pd(+parts[1])}-${pd(+parts[2])}`;
+  }
+  // 2. DD/MM/YYYY or DD-MM-YYYY
+  const ddmmyyyy = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+  if (ddmmyyyy) {
+    let d = +ddmmyyyy[1], m = +ddmmyyyy[2], y = +ddmmyyyy[3];
+    if (y < 100) y += 2000;
+    // Check if format might be MM/DD/YYYY (if m > 12, swap)
+    if (m > 12 && d <= 12) { const tmp = d; d = m; m = tmp; }
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${pd(m)}-${pd(d)}`;
+    }
+  }
+  // 3. DD-Mon-YYYY (e.g. 05-Nov-2026 or 05 Nov 2026)
+  const monMatch = s.match(/^(\d{1,2})[-/\s]([A-Za-z]{3,4})[-/\s](\d{2,4})/);
+  if (monMatch) {
+    let d = +monMatch[1];
+    let y = +monMatch[3];
+    if (y < 100) y += 2000;
+    const M3 = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const mi = M3.indexOf(monMatch[2].slice(0, 3).toLowerCase());
+    if (mi >= 0) {
+      return `${y}-${pd(mi + 1)}-${pd(d)}`;
+    }
+  }
+  return null;
+}
+
+function parseAmountCell(raw) {
+  if (!raw) return 0;
+  const cleaned = String(raw).replace(/[^0-9.-]/g, '');
+  return parseFloat(cleaned) || 0;
+}
+
+function categorizeDescription(narration) {
+  const norm = String(narration || '').toLowerCase();
+  if (/swiggy|zomato|eats|restaurant|cafe|coffee|chai|bakery|dining|food|mcdonald|starbucks|kfc|burger|pizza/i.test(norm)) {
+    return 'Restaurant & takeaway';
+  } else if (/petrol|fuel|hpcl|bpcl|iocl|shell|cng|gasoline/i.test(norm)) {
+    return 'Fuel';
+  } else if (/amazon|flipkart|myntra|zara|h&m|shopping|mart|blinkit|zepto|instamart|grocery|supermarket|dmart|nature/i.test(norm)) {
+    return 'Groceries';
+  } else if (/electricity|bescom|kseb|water|gas|utility|broadband|wifi|jio|airtel|vi|billdesk/i.test(norm)) {
+    return 'Electricity, water & gas';
+  } else if (/uber|ola|rapido|metro|toll|fastag|parking/i.test(norm)) {
+    return 'Taxi & auto';
+  } else if (/salary|bonus|interest|dividend|credit|refund|cashback/i.test(norm)) {
+    return 'Other income';
+  } else if (/rent|maintenance|society|housing/i.test(norm)) {
+    return 'Housing & rent';
+  } else if (/hospital|clinic|pharmacy|chemist|apollo|medplus|doctor/i.test(norm)) {
+    return 'Health & medical';
+  } else if (/flight|indigo|air india|irctc|train|hotel|booking|makemytrip/i.test(norm)) {
+    return 'Travel & holidays';
+  }
+  return 'Miscellaneous';
+}
+
+function parseBankStatementText(rawText) {
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  if (!lines.length) return [];
+
+  // Determine delimiter: tab vs comma
+  const sample = lines.slice(0, 15).join('\n');
+  const isTab = (sample.split('\t').length > sample.split(',').length);
+  const splitLine = isTab ? (l => l.split('\t').map(s => s.trim())) : parseCSVLine;
+
+  // Header detection
+  let headerIdx = -1;
+  let colDate = -1, colDesc = -1, colDebit = -1, colCredit = -1, colAmt = -1, colType = -1;
+
+  for (let i = 0; i < Math.min(25, lines.length); i++) {
+    const cols = splitLine(lines[i]).map(c => c.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    let dIdx = cols.findIndex(c => /date|txn.*date|trans.*date|valuedate/i.test(c));
+    let nIdx = cols.findIndex(c => /narration|description|particulars|remark|details|merchant/i.test(c));
+    let drIdx = cols.findIndex(c => /debit|dr|withdrawal|withdraw/i.test(c));
+    let crIdx = cols.findIndex(c => /credit|cr|deposit/i.test(c));
+    let aIdx = cols.findIndex(c => /amount|txnamt/i.test(c));
+    let tIdx = cols.findIndex(c => /type|crdr|drcr/i.test(c));
+
+    if (dIdx >= 0 && (nIdx >= 0 || drIdx >= 0 || crIdx >= 0 || aIdx >= 0)) {
+      headerIdx = i;
+      colDate = dIdx;
+      colDesc = nIdx >= 0 ? nIdx : 1;
+      colDebit = drIdx;
+      colCredit = crIdx;
+      colAmt = aIdx;
+      colType = tIdx;
+      break;
+    }
+  }
+
+  const rows = [];
+  const startLine = headerIdx >= 0 ? headerIdx + 1 : 0;
+
+  for (let i = startLine; i < lines.length; i++) {
+    const cols = splitLine(lines[i]);
+    if (cols.length < 2) continue;
+
+    let dateVal = null;
+    let descVal = '';
+    let amtVal = 0;
+    let typeVal = 'exp'; // 'exp' or 'inc'
+
+    if (headerIdx >= 0) {
+      dateVal = parseDateCell(cols[colDate]);
+      descVal = (colDesc >= 0 && cols[colDesc]) ? cols[colDesc] : '';
+
+      if (colDebit >= 0 && colCredit >= 0) {
+        const dr = parseAmountCell(cols[colDebit]);
+        const cr = parseAmountCell(cols[colCredit]);
+        if (dr > 0) { amtVal = dr; typeVal = 'exp'; }
+        else if (cr > 0) { amtVal = cr; typeVal = 'inc'; }
+      } else if (colAmt >= 0) {
+        const rawAmt = cols[colAmt];
+        amtVal = Math.abs(parseAmountCell(rawAmt));
+        if (colType >= 0 && cols[colType]) {
+          const tStr = cols[colType].toLowerCase();
+          typeVal = /cr|credit|deposit|in/i.test(tStr) ? 'inc' : 'exp';
+        } else if (String(rawAmt).includes('-') || String(rawAmt).includes('(')) {
+          typeVal = 'exp';
+        } else {
+          // Check description for credit/refund cues
+          typeVal = /credit|salary|refund|reversal|interest|dividend/i.test(descVal) ? 'inc' : 'exp';
+        }
+      }
+    } else {
+      // Heuristic fallback without header: scan columns for date, text, amount
+      for (let j = 0; j < cols.length; j++) {
+        const d = parseDateCell(cols[j]);
+        if (d && !dateVal) { dateVal = d; continue; }
+        const a = parseAmountCell(cols[j]);
+        if (a > 0 && !amtVal) { amtVal = a; continue; }
+        if (cols[j].length > descVal.length && !/^\d+$/.test(cols[j])) {
+          descVal = cols[j];
+        }
+      }
+    }
+
+    if (dateVal && amtVal > 0) {
+      // Clean up description
+      const cleanDesc = descVal.replace(/\s+/g, ' ').replace(/^["']|["']$/g, '').trim() || 'Bank Transaction';
+      rows.push({
+        d: dateVal,
+        a: Math.round(amtVal * 100) / 100,
+        n: cleanDesc,
+        t: typeVal,
+        c: categorizeDescription(cleanDesc)
+      });
+    }
+  }
+
+  return rows;
+}
+
+function deduplicateTransactions(candidates, targetAccId) {
+  // Existing transactions for this account
+  const existing = S.tx.filter(t => t.s === targetAccId || t.cd === targetAccId || t.to === targetAccId);
+  const newItems = [];
+  const duplicateItems = [];
+
+  candidates.forEach(cand => {
+    // Exact or near match: same date, same amount (within 0.01)
+    const isDup = existing.some(ext => {
+      if (ext.d !== cand.d) return false;
+      if (Math.abs(ext.a - cand.a) > 0.01) return false;
+      // If descriptions match closely or types match
+      const extDesc = (ext.n || ext.c || '').toLowerCase();
+      const candDesc = (cand.n || cand.c || '').toLowerCase();
+      if (extDesc === candDesc) return true;
+      if (extDesc.includes(candDesc) || candDesc.includes(extDesc)) return true;
+      if (ext.t === cand.t) return true; // same account, same day, exact same amount
+      return false;
+    });
+
+    if (isDup) {
+      duplicateItems.push(cand);
+    } else {
+      newItems.push(cand);
+    }
+  });
+
+  return { newItems, duplicateItems };
+}
+
+function openStatementImportDialog(preselectedAccId = '') {
+  const d = $('#dlg');
+  const accOptions = [
+    ...S.acc.map(a => `<option value="${a.id}" ${preselectedAccId == a.id ? 'selected' : ''}>🏦 ${e(a.n)} (${f(accBal(a))})</option>`),
+    ...S.cards.map(c => `<option value="${c.id}" ${preselectedAccId == c.id ? 'selected' : ''}>💳 ${e(c.n)} (${f(cardOut(c))} used)</option>`)
+  ].join('');
+
+  d.innerHTML = `
+    <div class=sheet-drag-handle onclick="dlg.close()"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">📥 Import Bank Statement</h3>
+        <span class="badge-countdown" style="background:color-mix(in srgb,var(--pri) 15%,transparent);color:var(--pri)">Auto-Deduplicated</span>
+      </div>
+      <div class=m style="font-size:12.5px;line-height:1.4">
+        Upload or paste a CSV/Excel statement from your bank website (HDFC, ICICI, SBI, Axis, etc.).
+        Fintrak will automatically parse dates, merchants, and categories, and <b>only add transactions not currently recorded</b> in the app.
+      </div>
+
+      <div>
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Target Account / Card:</label>
+        <select id="stmtTargetAcc" style="width:100%;min-height:38px;font-size:13px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 8px">
+          ${accOptions}
+        </select>
+      </div>
+
+      <div style="border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;background:var(--bg)">
+        <input type="file" id="stmtFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="handleStatementFile(this)">
+        <button type="button" class="pri" onclick="document.getElementById('stmtFileInput').click()" style="min-height:36px;padding:0 16px;font-size:12.5px;border-radius:8px;margin-bottom:6px">
+          📄 Choose CSV / Statement File
+        </button>
+        <div class="m" style="font-size:11px">Supports CSV, TSV, or exported text statements</div>
+      </div>
+
+      <div style="text-align:center;font-size:11.5px;color:var(--mut);margin:-4px 0">- OR PASTE STATEMENT ROWS -</div>
+
+      <div>
+        <textarea id="stmtPasteInp" placeholder="Date, Narration, Withdrawal, Deposit\n02/11/2026, SWIGGY BANGALORE, 450.00, \n03/11/2026, SALARY CREDIT, , 150000.00" style="width:100%;height:90px;font-family:monospace;font-size:11.5px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);box-sizing:border-box"></textarea>
+      </div>
+
+      <div id="stmtPreviewArea" style="display:none"></div>
+
+      <div class="row" style="margin-top:4px">
+        <button type="button" onclick="dlg.close()">Cancel</button>
+        <button type="button" class="pri" onclick="processPastedStatement()">Parse & Preview</button>
+      </div>
+    </div>
+  `;
+  d.showModal();
+  history.pushState({ t: V.t, dlg: 1 }, '');
+}
+
+function handleStatementFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    document.getElementById('stmtPasteInp').value = text;
+    processPastedStatement();
+  };
+  reader.readAsText(file);
+}
+
+function processPastedStatement() {
+  const text = document.getElementById('stmtPasteInp').value.trim();
+  const accId = document.getElementById('stmtTargetAcc').value;
+  if (!text) return alert('Please upload a file or paste statement text.');
+  if (!accId) return alert('Please select a target account.');
+
+  const parsed = parseBankStatementText(text);
+  if (!parsed.length) return alert('Could not find valid transaction rows with dates and amounts. Please check format.');
+
+  const { newItems, duplicateItems } = deduplicateTransactions(parsed, accId);
+  window._parsedStatementImport = { newItems, accId };
+
+  const previewEl = document.getElementById('stmtPreviewArea');
+  previewEl.style.display = 'block';
+  previewEl.innerHTML = `
+    <div style="padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <b>Statement Summary:</b>
+        <span class="ok" style="font-weight:700">${newItems.length} new transactions</span>
+      </div>
+      <div class="m" style="font-size:12px">
+        Found <b>${parsed.length} total rows</b> · <b>${duplicateItems.length} duplicates skipped</b> (already recorded) · <b>${newItems.length} ready to add</b>
+      </div>
+      ${duplicateItems.length > 0 ? `<div class="m" style="font-size:11px;color:var(--mut);margin-top:4px">✓ Exact matches on date, amount, and account were automatically filtered out to prevent double-counting.</div>` : ''}
+    </div>
+
+    ${newItems.length ? `
+      <div style="max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--card)">
+        ${newItems.slice(0, 50).map(t => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 6px;border-bottom:1px solid var(--line);font-size:12px">
+            <div>
+              <b>${e(t.n)}</b>
+              <div class="m" style="font-size:10.5px">${t.d} · ${e(t.c)}</div>
+            </div>
+            <b class="${t.t == 'inc' ? 'ok' : ''}">${t.t == 'inc' ? '+' : '-'}${f(t.a)}</b>
+          </div>
+        `).join('')}
+        ${newItems.length > 50 ? `<div class="m" style="text-align:center;padding:6px;font-size:11px">+ ${newItems.length - 50} more items...</div>` : ''}
+      </div>
+      <button type="button" class="pri" onclick="commitStatementImport()" style="width:100%;min-height:38px;margin-top:10px;font-size:13px;border-radius:10px">
+        ✓ Add ${newItems.length} New Transactions to ${e(src(accId))}
+      </button>
+    ` : `
+      <div class="m" style="text-align:center;padding:12px;font-size:13px;color:var(--ok)">
+        🎉 All ${parsed.length} transactions in this statement are already recorded in Fintrak! Zero mismatch.
+      </div>
+    `}
+  `;
+}
+
+function commitStatementImport() {
+  const data = window._parsedStatementImport;
+  if (!data || !data.newItems || !data.newItems.length) return alert('No new items to import.');
+
+  const isCard = S.cards.some(c => c.id == data.accId);
+  data.newItems.forEach(item => {
+    S.tx.push({
+      id: id(),
+      d: item.d,
+      t: item.t,
+      a: item.a,
+      c: item.c,
+      n: item.n,
+      s: isCard ? '' : data.accId,
+      cd: isCard ? data.accId : '',
+      adj: 0,
+      reimb: 0
+    });
+  });
+
+  save();
+  const d = $('#dlg');
+  if (d) d.close();
+  toast(`✓ Successfully imported ${data.newItems.length} transactions into ${src(data.accId)}!`);
+
+  // Switch to History filtered to this account so user can inspect
+  V.t = 'hist';
+  V.accFilter = data.accId;
+  V.dateFrom = '';
+  V.dateTo = '';
+  render();
+}
+
 const expCsv = () => {
   const L = [...S.tx].sort((a, b) => b.d.localeCompare(a.d));
   if (!L.length) return alert('No transactions to export');
@@ -2113,8 +2474,9 @@ function cards() {
             <div class=m style="font-size:11px">Primary Account</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:6px">
           <b style="font-size:15px">${f(accBal(a))}</b>
+          <button type=button onclick="event.stopPropagation();V.t='hist';V.accFilter='${a.id}';render()" style="min-height:28px;padding:0 8px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px solid var(--line)" title="View statement and check for mismatches">📄 Statement</button>
           <button type=button onclick="event.stopPropagation();reconcileAccForm('${a.id}')" style="min-height:28px;padding:0 8px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px solid var(--line)" title="Adjust to actual bank balance">⚖️ Adjust</button>
         </div>
       </div>`).join('') || '<div class=m>No bank accounts added yet.</div>'}
@@ -2704,10 +3066,12 @@ function hist() {
   const dFrom = V.dateFrom || '';
   const dTo = V.dateTo || '';
 
+  const af = V.accFilter || '';
   const A = S.tx.filter(t => t.c !== "Card balance");
   const L = A.filter(t => {
     if (fl != 'all' && t.t != fl) return false;
     if (cf && (t.c || '') !== cf) return false;
+    if (af && t.s !== af && t.cd !== af && t.to !== af) return false;
     if (dFrom && t.d < dFrom) return false;
     if (dTo && t.d > dTo) return false;
     if (sq) {
@@ -2764,6 +3128,25 @@ function hist() {
   <div style="position:relative;margin:8px 0 4px">
     <input type=text id=txSearchInp value="${e(V.sq || '')}" placeholder="🔍 Search description, merchant, card..." oninput="V.sq=this.value;render()" style="width:100%;min-height:40px;padding:0 32px 0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px">
     ${V.sq ? `<button onclick="V.sq='';render()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--mut);min-height:30px;padding:0 8px;font-size:16px;">✕</button>` : ''}
+  </div>
+
+  <!-- Account Filter & Statement Reconciliation Strip -->
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+    <div style="flex:1;min-width:140px;position:relative">
+      <select onchange="V.accFilter=this.value;render()" style="width:100%;min-height:32px;font-size:12px;border-radius:8px;border:1px solid ${V.accFilter ? 'var(--pri)' : 'var(--line)'};background:${V.accFilter ? 'color-mix(in srgb,var(--pri) 10%,var(--card))' : 'var(--card)'};color:var(--ink);padding:0 8px;font-weight:${V.accFilter ? '600' : 'normal'}">
+        <option value="">🏦 All Accounts & Cards</option>
+        <optgroup label="Bank Accounts & Cash">
+          ${S.acc.map(a => `<option value="${a.id}" ${V.accFilter == a.id ? 'selected' : ''}>${e(a.n)} (${f(accBal(a))})</option>`).join('')}
+        </optgroup>
+        <optgroup label="Credit Cards">
+          ${S.cards.map(c => `<option value="${c.id}" ${V.accFilter == c.id ? 'selected' : ''}>${e(c.n)} (${f(cardOut(c))} used)</option>`).join('')}
+        </optgroup>
+      </select>
+    </div>
+    <button type=button onclick="openStatementImportDialog('${V.accFilter || ''}')" style="min-height:32px;padding:0 10px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px dashed var(--pri);color:var(--pri);display:flex;align-items:center;gap:4px;white-space:nowrap;font-weight:600">
+      📥 Import Statement
+    </button>
+    ${V.accFilter ? `<button type=button onclick="V.accFilter='';render()" style="min-height:32px;padding:0 8px;font-size:11.5px;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--mut)" title="Clear account filter">✕ Reset</button>` : ''}
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
