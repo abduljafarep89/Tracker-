@@ -6,33 +6,30 @@ html {
 }
 
 :root {
-  --bg: #F5F7FB;
+  --bg: #F4F5FA;
   --card: #FFFFFF;
-  --ink: #111827;
-  --mut: #4B5563;
+  --ink: #1B1F3B;
+  --mut: #4B5160;
   --pri: #4F46E5;
-  --ok: #0D9488;
-  --warn: #D97706;
-  --bad: #E11D48;
-  --line: #E2E8F0;
+  --ok: #0F766E;
+  --warn: #B45309;
+  --bad: #B91C1C;
+  --line: #E4E6F2;
   --g1: #4338CA;
   --g2: #7C3AED;
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --card-radius: 20px;
-  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0F172A;
-    --card: #1E293B;
-    --ink: #F8FAFC;
-    --mut: #94A3B8;
+    --bg: #10121F;
+    --card: #1A1D33;
+    --ink: #EEF0FF;
+    --mut: #A9AEC9;
     --pri: #6D6AF0;
-    --ok: #34D399;
-    --warn: #FBBF24;
-    --bad: #F87171;
-    --line: #334155;
+    --ok: #4FD1C5;
+    --warn: #F6AD55;
+    --bad: #FC8181;
+    --line: #2C3050;
   }
 }
 
@@ -81,13 +78,10 @@ main {
 
 .c {
   background: var(--card);
-  border-radius: var(--card-radius);
-  padding: 15px;
-  border: 1px solid var(--line);
-  box-shadow: var(--card-shadow);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;
-  position: relative;
-  overflow: hidden;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(30, 30, 90, 0.07);
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .c h3 { margin: 0 0 8px; font-size: 15px; }
@@ -121,7 +115,7 @@ button:active { transform: scale(0.97); transition: transform 0.1s; }
 .ok { color: var(--ok); }
 .wn { color: var(--warn); }
 
-/* Navigation bar */
+/* Navigation bar: 100% solid, fully opaque, non-transparent across ALL tabs */
 nav {
   position: fixed;
   bottom: 0;
@@ -178,7 +172,7 @@ nav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-wi
   justify-content: center;
 }
 
-/* Compact Month Controls in Header */
+/* Compact Month Controls in Header (360px-390px safe) */
 .mn { display: flex; align-items: center; gap: 2px; }
 .mn button { width: 30px; height: 34px; min-height: 34px; padding: 0; border-radius: 8px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
 .mn span { font-size: 13.5px; font-weight: 700; white-space: nowrap; padding: 0 4px; }
@@ -231,7 +225,7 @@ dialog input, dialog select, dialog textarea {
 .tile { border-radius: 14px; padding: 10px 12px; }
 .tile b { font-size: 16px; display: block; }
 
-/* Responsive 2-Row Segmented Grid */
+/* Responsive 2-Row Segmented Grid - Never Overflows Screen */
 .seg-grid {
   display: flex;
   flex-direction: column;
@@ -309,6 +303,42 @@ dialog input, dialog select, dialog textarea {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+/* legacy seg */
+.old-seg {
+  display: flex;
+  background: var(--line);
+  border-radius: 14px;
+  padding: 3px;
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+.seg::-webkit-scrollbar {
+  display: none;
+}
+.seg button {
+  flex: 1 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+  padding: 0 12px;
+  border: 0;
+  min-height: 38px;
+  border-radius: 11px;
+  background: none;
+  font-size: 13px;
+  text-align: center;
+}
+.seg .on {
+  background: var(--card);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 .ck {
   width: 32px;
   height: 32px;
@@ -358,7 +388,86 @@ dialog input, dialog select, dialog textarea {
 .dots { display: flex; gap: 2px; height: 6px; margin-top: 4px; }
 .dots i { width: 6px; height: 6px; border-radius: 50%; }
 
+.sws { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+.sws button { width: 100%; aspect-ratio: 1; min-height: 0; padding: 0; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: transform 0.12s; }
+.sws button:active { transform: scale(0.88); }
+.sws button.on { border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--card); }
+
 .badge-countdown { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-block; white-space: nowrap; }
+
+/* Quick Add Shortcut Pill Bar */
+.quick-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.quick-pills::-webkit-scrollbar { display: none; }
+.quick-pill {
+  flex: none;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Privacy Mode Filter */
+.priv-mode .pm-blur,
+.priv-mode .big,
+.priv-mode .tile b,
+.priv-mode .r > b,
+.priv-mode .r > span > b,
+.priv-mode .hero div[style*="font-size:32px"],
+.priv-mode .hero b,
+.priv-mode .cc .big,
+.priv-mode .day,
+.priv-mode #health-details,
+.priv-mode #scrubTip {
+  filter: blur(7px);
+  user-select: none;
+  transition: filter 0.2s ease;
+}
+
+/* PIN Lock Screen */
+#pinLockOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.pin-dots { display: flex; gap: 14px; margin: 24px 0 32px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--pri); background: transparent; transition: background 0.15s; }
+.pin-dot.filled { background: var(--pri); }
+.pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; max-width: 280px; }
+.pin-btn { height: 64px; font-size: 22px; font-weight: 700; border-radius: 50%; background: var(--card); border: 1px solid var(--line); }
+
+/* --- Complete UI Overhaul Styles --- */
+:root {
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --card-radius: 20px;
+  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.c {
+  border-radius: var(--card-radius);
+  border: 1px solid var(--line);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s;
+}
 
 /* Visual Bank Account Cards */
 .account-card {
@@ -457,37 +566,14 @@ dialog input, dialog select, dialog textarea {
   font-weight: 700;
 }
 
-/* Privacy Mode Filter */
-.priv-mode .pm-blur,
-.priv-mode .big,
-.priv-mode .tile b,
-.priv-mode .r > b,
-.priv-mode .r > span > b,
-.priv-mode .hero div[style*="font-size:32px"],
-.priv-mode .hero b,
-.priv-mode .cc .big,
-.priv-mode .day,
-.priv-mode #health-details,
-.priv-mode #scrubTip {
-  filter: blur(7px);
-  user-select: none;
-  transition: filter 0.2s ease;
+/* Visual Card Mockup Enhancement */
+.cc-chip {
+  width: 36px;
+  height: 26px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #FFE27D 0%, #D8A228 100%);
+  border: 1px solid #B88A1B;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
 }
-
-/* PIN Lock Screen */
-#pinLockOverlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.pin-dots { display: flex; gap: 14px; margin: 24px 0 32px; }
-.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--pri); background: transparent; transition: background 0.15s; }
-.pin-dot.filled { background: var(--pri); }
-.pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; max-width: 280px; }
-.pin-btn { height: 64px; font-size: 22px; font-weight: 700; border-radius: 50%; background: var(--card); border: 1px solid var(--line); }

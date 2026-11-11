@@ -1,29 +1,48 @@
 {
+  "id": "fintrak",
   "name": "Fintrak - Personal Finance Tracker",
   "short_name": "Fintrak",
-  "description": "Smart, privacy-first personal finance tracker with automated reconciliations, visual cards, and cloud sync",
-  "start_url": "index.html",
+  "description": "Smart personal finance tracker: accounts, cards, budget pace, people ledger, investments, and analytics.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#4F46E5",
   "orientation": "portrait",
+  "background_color": "#10121F",
+  "theme_color": "#4F46E5",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Transaction",
+      "short_name": "Add",
+      "description": "Quickly record a new expense or income",
+      "url": "./index.html#add",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "View Month-on-Month Trends & Cashflow",
+      "url": "./index.html#analytics",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
