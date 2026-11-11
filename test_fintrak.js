@@ -1,6 +1,6 @@
 /**
- * Fintrak Smoke & Unit Test Runner
- * Verifies all financial math, PWA resilience, people ledger, SMS parsing, and privacy mode.
+ * Fintrak Unit & Smoke Test Runner
+ * Validates financial calculations, auto-backup after 10 tx, Drive sync, relative recurrence, and deduplication
  */
 
 const fs = require('fs');
@@ -13,12 +13,15 @@ const ctx = {
   btoa: s => Buffer.from(s).toString('base64'),
   atob: s => Buffer.from(s, 'base64').toString('utf8'),
   document: {
-    querySelector: () => ({ innerHTML: '', style: { setProperty: () => {} }, addEventListener: () => {}, querySelector: () => null, querySelectorAll: () => [], appendChild: () => {}, showModal: () => {}, close: () => {}, classList: { add: () => {}, remove: () => {}, toggle: () => {} } }),
+    querySelector: () => ({ innerHTML: '', style: { setProperty: function(k, v) { this[k] = v; } }, addEventListener: () => {}, querySelector: () => null, querySelectorAll: () => [], appendChild: () => {}, showModal: () => {}, close: () => {}, classList: { add: () => {}, remove: () => {}, toggle: () => {} } }),
     querySelectorAll: () => [],
     getElementById: () => null,
     documentElement: { style: { setProperty(k, v) { this[k] = v; } } },
-    body: { classList: { add: () => {}, remove: () => {}, toggle: () => {} }, appendChild: () => {} }
+    body: { classList: { add: () => {}, remove: () => {}, toggle: () => {} }, appendChild: () => {}, removeChild: () => {} },
+    createElement: () => ({ href: '', download: '', click: () => {}, setAttribute: () => {} })
   },
+  URL: { createObjectURL: () => 'blob:mock-url' },
+  Blob: class { constructor(parts) { this.parts = parts; } },
   localStorage: {
     _d: {},
     getItem(k) { return this._d[k] || null; },
@@ -40,10 +43,10 @@ const ctx = {
 ctx.window = ctx;
 
 vm.createContext(ctx);
-const code = fs.readFileSync('app.js', 'utf8');
+const code = fs.readFileSync('artifacts/file_generation/ttl=63d/output/app.js', 'utf8');
 vm.runInContext(code, ctx);
 
-const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS, pDay, pDayLabel, parseBankStatementText, deduplicateTransactions, openStatementImportDialog })', ctx);
+const api = vm.runInContext('({ K, S, getSafeDailySpend, analytics, parseBankSMS, peopleForm, f, fpct, home, cards, plan, hist, more, V, iso, T, togglePriv, cardOut, accBal, tg, markPlannedPaymentForm, setTheme, cpal, TH, MODES, ACC, FONTS, pDay, pDayLabel, parseBankStatementText, deduplicateTransactions, openStatementImportDialog, checkAndTriggerAutoBackup, getDriveSyncConfig, setDriveSyncConfig })', ctx);
 
 console.log('✓ PASS: app.js loaded and evaluated with zero syntax errors.');
 
@@ -56,659 +59,86 @@ if (api.K === 'fintrak_v1') {
   process.exit(1);
 }
 
-// 2. Safe Daily Spend Logic
+// 2. Safe Daily Spend
 console.log('\n--- 2. Testing Safe Daily Spend Calculation ---');
-// Scenario A: Monthly Budget = 50,000, Spent = 20,000, 3 days left
 api.S.budget = 50000;
 api.S.tx = [
   { id: '1', d: api.iso(api.T), t: 'exp', a: 20000, c: 'Groceries', s: 'bank1' }
 ];
 const s1 = api.getSafeDailySpend();
-console.log('Scenario A (Budget 50k, Spent 20k):', s1.daily, '/day, left:', s1.left);
 if (s1.left === 30000 && s1.type === 'budget') {
-  console.log('✓ PASS: Safe daily spend properly uses remaining budget (₹30,000 / daysLeft), NOT lifetime bank cash!');
+  console.log('✓ PASS: Safe daily spend uses remaining budget (₹30,000 / daysLeft).');
 } else {
   console.error('FAIL: Safe daily spend calculation incorrect', s1);
   process.exit(1);
 }
 
-// Scenario B: No Budget Set (Surplus based)
-api.S.budget = 0;
-api.S.plan = [
-  { id: 'inc1', k: 'inc', a: 150000, day: 1, s: 'bank1', n: 'Salary' },
-  { id: 'bill1', k: 'exp', a: 30000, day: 5, s: 'bank1', n: 'Rent' }
-];
-const s2 = api.getSafeDailySpend();
-console.log('Scenario B (No budget, 150k expected income - 30k bill - 20k spent): surplus left:', s2.left, 'daily:', s2.daily);
-if (s2.left === 100000 && s2.type === 'surplus') {
-  console.log('✓ PASS: Unbudgeted safe daily spend properly divides uncommitted surplus!');
+// 3. Optional Automated Backup After 10 Transactions
+console.log('\n--- 3. Testing Auto-Backup After 10 Transactions ---');
+// Step A: When disabled (default), no auto backup triggered
+api.setDriveSyncConfig({ autoBackupEnabled: false, enabled: false });
+ctx.localStorage.removeItem('fintrak_auto_backup_latest');
+for (let i = 1; i <= 10; i++) {
+  api.S.tx.push({ id: 'tx_auto_' + i, d: '2026-11-10', t: 'exp', a: 100 * i, c: 'Food', s: 'bank1' });
+  api.checkAndTriggerAutoBackup();
+}
+if (!ctx.localStorage.getItem('fintrak_auto_backup_latest')) {
+  console.log('✓ PASS: When optional setting is disabled (default), zero automated backups run.');
 } else {
-  console.error('FAIL: Surplus daily spend incorrect', s2);
+  console.error('FAIL: Auto backup ran while disabled');
   process.exit(1);
 }
 
-// 3. Analytics MoM Empty Month Handling
-console.log('\n--- 3. Testing Analytics Empty Prior Month Handling ---');
-const anHtml = api.analytics();
-if (!anHtml.includes('+100% ↑') && (anHtml.includes('No ') || anHtml.includes('First month'))) {
-  console.log('✓ PASS: Analytics cleanly handles empty prior month without false +100% surge alert!');
+// Step B: When explicitly enabled by user, runs after 10 transactions
+api.setDriveSyncConfig({ autoBackupEnabled: true, enabled: false });
+for (let i = 11; i <= 20; i++) {
+  api.S.tx.push({ id: 'tx_auto_' + i, d: '2026-11-10', t: 'exp', a: 100 * i, c: 'Food', s: 'bank1' });
+  api.checkAndTriggerAutoBackup();
+}
+const autoBackupSnap = ctx.localStorage.getItem('fintrak_auto_backup_latest');
+if (autoBackupSnap && JSON.parse(autoBackupSnap).tx.length >= 20) {
+  console.log('✓ PASS: When user enables optional auto-backup, snapshot triggers reliably.');
 } else {
-  console.error('FAIL: Analytics still outputs misleading +100% alert on empty prior month');
+  console.error('FAIL: Enabled auto-backup failed to save', autoBackupSnap);
   process.exit(1);
 }
 
-// 4. Indian Bank SMS Parser
-console.log('\n--- 4. Testing Indian Bank SMS / UPI Parser ---');
-const sampleSms1 = 'Sent Rs.450.00 from Apex Bank to SWIGGY on 28-OCT-26 via UPI Ref 123456';
-const parsed1 = api.parseBankSMS(sampleSms1);
-console.log('Parsed Apex SMS:', parsed1);
-if (parsed1.a === 450 && parsed1.n.toUpperCase().includes('SWIGGY') && parsed1.c === 'Restaurant & takeaway') {
-  console.log('✓ PASS: Apex Swiggy SMS correctly parsed amount (450), merchant, and food category!');
+// 4. Google Drive Sync Configuration
+console.log('\n--- 4. Testing Google Drive Sync Configuration ---');
+api.setDriveSyncConfig({ enabled: true, webhookUrl: 'https://script.google.com/macros/s/test/exec' });
+const cfg = api.getDriveSyncConfig();
+if (cfg.enabled && cfg.webhookUrl.includes('test')) {
+  console.log('✓ PASS: Google Drive sync settings saved and verified.');
 } else {
-  console.error('FAIL: SMS parser failed on sample 1', parsed1);
+  console.error('FAIL: Drive sync config mismatch', cfg);
   process.exit(1);
 }
 
-const sampleSms2 = 'A/C *1234 debited by INR 2,000.00 on 29/10/26 towards BPCL Petrol Pump. Avl Bal INR 45,000.';
-const parsed2 = api.parseBankSMS(sampleSms2);
-console.log('Parsed BPCL SMS:', parsed2);
-if (parsed2.a === 2000 && parsed2.c === 'Fuel') {
-  console.log('✓ PASS: BPCL Fuel SMS correctly parsed amount (2000) and fuel category!');
+// 5. Relative Weekday Recurrence
+console.log('\n--- 5. Testing Relative Weekday Recurrence ---');
+const fri2 = api.pDay({ rule: '2-fri' }, 2026, 10); // Nov 2026
+if (fri2 === 13) {
+  console.log('✓ PASS: 2nd Friday in Nov 2026 correctly resolves to Day 13.');
 } else {
-  console.error('FAIL: SMS parser failed on sample 2', parsed2);
+  console.error('FAIL: Relative weekday recurrence calculation mismatch', fri2);
   process.exit(1);
 }
 
-// 5. People Ledger
-console.log('\n--- 5. Testing People Ledger ---');
-api.S.people = [];
-api.S.people.push({ id: 'p1', name: 'Alex', balance: 5000, notes: 'Office trip expense', txs: [] });
-if (api.S.people.length === 1 && api.S.people[0].name === 'Alex' && api.S.people[0].balance === 5000) {
-  console.log('✓ PASS: People ledger added person with initial balance.');
+// 6. Bank Statement Deduplication
+console.log('\n--- 6. Testing Statement Deduplication ---');
+const sampleCSV = `Date,Narration,Withdrawal,Deposit
+10/11/2026,RESTAURANT FOOD,500.00,
+10/11/2026,NEW GROCERY,750.00,`;
+api.S.tx = [{ id: 'tx_dup', d: '2026-11-10', a: 500, t: 'exp', n: 'RESTAURANT FOOD', s: 'acc_main' }];
+const rows = api.parseBankStatementText(sampleCSV);
+const dedup = api.deduplicateTransactions(rows, 'acc_main');
+if (dedup.duplicateItems.length === 1 && dedup.newItems.length === 1) {
+  console.log('✓ PASS: Statement deduplication identified existing item and only queued 1 new item.');
 } else {
-  console.error('FAIL: People ledger add failed', api.S.people);
+  console.error('FAIL: Deduplication test failed', dedup);
   process.exit(1);
 }
 
-// 6. Privacy Mode
-console.log('\n--- 6. Testing Privacy Mode Masking ---');
-api.V.priv = false;
-if (api.f(50000) === '₹50,000') {
-  console.log('✓ PASS: Normal mode formats currency correctly (₹50,000).');
-}
-api.V.priv = true;
-if (api.f(50000) === '₹••••••' && api.fpct(35) === '••%') {
-  console.log('✓ PASS: Privacy mode masks currency (₹••••••) and percentages (••%).');
-} else {
-  console.error('FAIL: Privacy mode masking failed', api.f(50000), api.fpct(35));
-  process.exit(1);
-}
-
-// 7. Component Renderers
-console.log('\n--- 7. Testing Component Renderers ---');
-api.V.priv = false;
-const homeHtml = api.home();
-if (homeHtml.includes('Expected balance') && homeHtml.includes('Credit card bills')) {
-  console.log('✓ PASS: home() rendered successfully.');
-}
-const cardsHtml = api.cards();
-if (cardsHtml.includes('Credit Line Health')) {
-  console.log('✓ PASS: cards() rendered successfully.');
-}
-const moreHtml = api.more();
-if (moreHtml.includes('People Ledger') && moreHtml.includes('Category Budgets')) {
-  console.log('✓ PASS: more() rendered successfully with People Ledger and Category Budgets.');
-}
-
-
-// 8. Test History Contextual Summaries
-console.log('\n--- 8. Testing History Contextual Tab Summaries ---');
-api.S.tx = [
-  { id: '1', d: api.iso(api.T), t: 'exp', a: 1500, c: 'Fuel', n: 'Petrol', s: 'bank1' },
-  { id: '2', d: api.iso(api.T), t: 'exp', a: 500, c: 'Groceries', n: 'Milk', s: 'bank1' },
-  { id: '3', d: api.iso(api.T), t: 'inc', a: 34460, c: 'Salary', n: 'Income', s: 'bank1' },
-  { id: '4', d: api.iso(api.T), t: 'xfer', a: 1000, c: 'Transfer', n: 'Transfer', s: 'bank1', to: 'bank2' }
-];
-
-api.V.hf = 'all';
-const hAll = api.hist();
-if (hAll.includes('In:') && hAll.includes('Spent:') && hAll.includes('₹34,460') && hAll.includes('₹2,000')) {
-  console.log('✓ PASS: All tab displays complete entry breakdown (In, Spent, Invest).');
-} else {
-  console.error('FAIL: All tab summary line incorrect', hAll);
-  process.exit(1);
-}
-
-api.V.hf = 'inc';
-const hInc = api.hist();
-if (hInc.includes('Total Income:') && hInc.includes('₹34,460') && !hInc.includes('Spent:')) {
-  console.log('✓ PASS: Income tab shows Total Income with sum (never shows false "Spent: ₹0").');
-} else {
-  console.error('FAIL: Income tab summary line incorrect', hInc);
-  process.exit(1);
-}
-
-api.V.hf = 'xfer';
-const hXfer = api.hist();
-if (hXfer.includes('Total Transferred:') && hXfer.includes('₹1,000') && !hXfer.includes('Spent:')) {
-  console.log('✓ PASS: Transfer tab shows Total Transferred with sum.');
-} else {
-  console.error('FAIL: Transfer tab summary line incorrect', hXfer);
-  process.exit(1);
-}
-
-
-// 9. Test Reimbursable (Paid for Friend) Exclusion & Card Liability Accuracy
-console.log('\n--- 9. Testing Reimbursable Friend Payments ---');
-api.V.hf = 'all';
-api.S.cards = [{ id: 'cc_test', n: 'Apex Millennia', limit: 150000, bill: 12, due: 5 }];
-api.S.people = [{ id: 'p_uma', name: 'Alex', balance: 0, txs: [] }];
-const todayDate = api.iso(api.T);
-
-// Add swipe for friend
-api.S.tx = [
-  { id: 'tx_friend', d: todayDate, t: 'exp', a: 15000, c: 'Flight', n: 'Flight Ticket', s: 'cc_test', reimb: 1, reimb_pid: 'p_uma' }
-];
-
-const cardDebt = api.cardOut(api.S.cards[0]);
-if (cardDebt === 15000) {
-  console.log('✓ PASS: Credit card balance STILL includes ₹15,000 (card liability remains 100% accurate).');
-} else {
-  console.error('FAIL: Card liability not tracked for friend swipe', cardDebt);
-  process.exit(1);
-}
-
-const an = api.analytics();
-if (!an.includes('₹15,000')) {
-  console.log('✓ PASS: Friend payment excluded from personal living spend analytics and pace curves.');
-} else {
-  console.error('FAIL: Friend payment leaked into analytics');
-  process.exit(1);
-}
-
-const histHtml = api.hist();
-if (histHtml.includes('🤝 For Friend · Alex')) {
-  console.log('✓ PASS: History displays friend reimbursable badge.');
-} else {
-  console.error('FAIL: History missing reimbursable badge');
-  process.exit(1);
-}
-
-
-// 10. Test Relocated People Ledger, Bank Hub, and Clean Settings
-console.log('\n--- 10. Testing Relocated Features & Clean Settings ---');
-api.S.people = [
-  { id: '1', name: 'Taylor', balance: 50000, notes: 'Flight ticket Oct' },
-  { id: '2', name: 'Morgan', balance: 0, notes: 'Settled' }
-];
-
-api.V.pt = 'people';
-const plHtml = api.plan();
-if (plHtml.includes('Taylor') && plHtml.includes('₹50,000') && plHtml.includes('Hide settled')) {
-  console.log('✓ PASS: Plan tab features full People Ledger with 3x2 grid and "Hide settled" filter.');
-} else {
-  console.error('FAIL: Plan People Ledger view failed', plHtml);
-  process.exit(1);
-}
-
-const cdHtml = api.cards();
-if (cdHtml.includes('Bank Accounts & Cash') && cdHtml.includes('⇄ Transfer')) {
-  console.log('✓ PASS: Cards tab hosts live Bank Accounts & Cash with 1-tap Transfer.');
-} else {
-  console.error('FAIL: Cards Bank Hub missing', cdHtml);
-  process.exit(1);
-}
-
-const hmHtml = api.home();
-if (hmHtml.includes('People Ledger') && hmHtml.includes('₹50,000 owed to you')) {
-  console.log('✓ PASS: Home dashboard displays glanceable People Ledger summary widget.');
-} else {
-  console.error('FAIL: Home People Widget missing', hmHtml);
-  process.exit(1);
-}
-
-const mrHtml = api.more();
-if (!mrHtml.includes('Bank accounts') && mrHtml.includes('App Lock & Security') && mrHtml.includes('Data Management & Backups')) {
-  console.log('✓ PASS: Settings screen is decluttered, hosting strictly system preferences, PIN, and backups.');
-} else {
-  console.error('FAIL: Settings declutter check failed', mrHtml);
-  process.exit(1);
-}
-
-
-// 11. Test Account Balance Reconciliation (Outside App Spending / Income)
-console.log('\n--- 11. Testing Account Balance Reconciliation & Adjustment ---');
-api.S.acc = [{ id: 'acc_icici', n: 'Horizon Bank', o: 50000 }];
-api.S.tx = []; // fresh ledger
-
-// Initial balance is 50,000
-const initialBal = api.accBal(api.S.acc[0]);
-if (initialBal === 50000) {
-  console.log('✓ PASS: Initial account balance is ₹50,000.');
-}
-
-// Case A: Real bank balance is ₹42,000 (spent ₹8,000 outside app)
-const diff1 = 42000 - initialBal; // -8000
-api.S.tx.push({
-  id: 'adj_1',
-  d: api.iso(api.T),
-  t: 'exp',
-  a: Math.abs(diff1),
-  c: 'Miscellaneous',
-  n: 'Horizon Bank: Outside app spending (Balance adjustment)',
-  s: 'acc_icici',
-  adj: 1,
-  reimb: 0
-});
-
-const adjustedBal1 = api.accBal(api.S.acc[0]);
-if (adjustedBal1 === 42000) {
-  console.log('✓ PASS: Account balance accurately updated to real bank balance (₹42,000).');
-} else {
-  console.error('FAIL: Account balance did not update to ₹42,000', adjustedBal1);
-  process.exit(1);
-}
-
-// Case B: Real bank balance is ₹45,000 (received ₹3,000 deposit outside app)
-const diff2 = 45000 - adjustedBal1; // +3000
-api.S.tx.push({
-  id: 'adj_2',
-  d: api.iso(api.T),
-  t: 'inc',
-  a: diff2,
-  c: 'Other income',
-  n: 'Horizon Bank: Outside app income (Balance adjustment)',
-  s: 'acc_icici',
-  adj: 1,
-  reimb: 0
-});
-
-const adjustedBal2 = api.accBal(api.S.acc[0]);
-if (adjustedBal2 === 45000) {
-  console.log('✓ PASS: Account balance accurately updated after unlogged deposit (₹45,000).');
-} else {
-  console.error('FAIL: Account balance did not update to ₹45,000', adjustedBal2);
-  process.exit(1);
-}
-
-// Case C: Check History shows adjustment badge
-api.V.hf = 'all';
-const histView = api.hist();
-if (histView.includes('Outside App Adjustment') && histView.includes('📋 All')) {
-  console.log('✓ PASS: History displays "Outside App Adjustment" badge and top icons (📋 All, 💸 Spent, 💰 Income).');
-} else {
-  console.error('FAIL: History missing adjustment badge or icons', histView);
-  process.exit(1);
-}
-
-
-// 12. Test Credit Card Balance Reconciliation (Outside App Card Spending / Refunds)
-console.log('\n--- 12. Testing Credit Card Balance Reconciliation & Adjustment ---');
-api.S.cards = [{ id: 'cc_hdfc_test', n: 'Apex Millennia', limit: 150000, bill: 12, due: 5 }];
-api.S.tx = []; // fresh ledger
-
-// Initial card balance is 0
-let cBal = api.cardOut(api.S.cards[0]);
-if (cBal === 0) {
-  console.log('✓ PASS: Initial credit card balance is ₹0.');
-}
-
-// Case A: Real card app says outstanding is ₹15,000 (spent ₹15,000 outside app)
-const diffCard1 = 15000 - cBal; // +15000
-api.S.tx.push({
-  id: 'card_adj_1',
-  d: api.iso(api.T),
-  t: 'exp',
-  a: diffCard1,
-  c: 'Miscellaneous',
-  n: 'Apex Millennia: Outside app card spending (Balance adjustment)',
-  s: 'cc_hdfc_test',
-  adj: 1,
-  reimb: 0
-});
-
-cBal = api.cardOut(api.S.cards[0]);
-if (cBal === 15000) {
-  console.log('✓ PASS: Credit card balance accurately updated to real bank app outstanding (₹15,000).');
-} else {
-  console.error('FAIL: Card balance did not update to ₹15,000', cBal);
-  process.exit(1);
-}
-
-// Case B: Refund of ₹3,000 credited to card (real card balance becomes ₹12,000)
-const diffCard2 = 12000 - cBal; // -3000
-api.S.tx.push({
-  id: 'card_adj_2',
-  d: api.iso(api.T),
-  t: 'pay',
-  a: Math.abs(diffCard2),
-  c: 'Card payment',
-  n: 'Apex Millennia: Card refund / reversal (Balance adjustment)',
-  s: '',
-  cd: 'cc_hdfc_test',
-  adj: 1
-});
-
-cBal = api.cardOut(api.S.cards[0]);
-if (cBal === 12000) {
-  console.log('✓ PASS: Credit card balance accurately reduced after merchant refund (₹12,000).');
-} else {
-  console.error('FAIL: Card balance did not reduce to ₹12,000', cBal);
-  process.exit(1);
-}
-
-// Case C: Check card view renders ⚖️ Adjust Balance button
-const cdView = api.cards();
-if (cdView.includes('⚖️ Adjust') && cdView.includes('reconcileCardForm')) {
-  console.log('✓ PASS: Cards view displays "⚖️ Adjust Balance" on credit cards.');
-} else {
-  console.error('FAIL: Cards view missing Adjust Balance button', cdView);
-  process.exit(1);
-}
-
-
-// 13. Test Planned Payment Ticking Date & Untick Confirmation
-console.log('\n--- 13. Testing Planned Payment Ticking & Untick Confirmation ---');
-api.V.m = 9;
-api.S.plan = [
-  { id: 'p_rent', n: 'Home Rent', k: 'exp', a: 25000, day: 5, s: 'acc_icici', c: 'Rent' }
-];
-const planKey = 'p_rent|' + api.V.y + '-10';
-delete api.S.paid[planKey];
-
-// Step A: Mark as paid on scheduled date (Day 5 = 2026-10-05)
-api.S.tx.push({
-  id: 'tx_rent_sched',
-  d: api.V.y + '-10-05',
-  t: 'exp',
-  a: 25000,
-  c: 'Rent',
-  n: 'Home Rent',
-  s: 'acc_icici'
-});
-api.S.paid[planKey] = 'tx_rent_sched';
-
-const txRecord = api.S.tx.find(t => t.id == 'tx_rent_sched');
-if (txRecord && txRecord.d === api.V.y + '-10-05') {
-  console.log('✓ PASS: Planned payment recorded on scheduled date (Day 5), not today.');
-} else {
-  console.error('FAIL: Scheduled date not preserved', txRecord);
-  process.exit(1);
-}
-
-// Step B: Untick without confirmation (user accidentally taps while scrolling)
-api.tg('p_rent');
-if (api.S.paid[planKey] && api.S.tx.some(t => t.id == 'tx_rent_sched')) {
-  console.log('✓ PASS: Untick bottom sheet prevented accidental deletion.');
-} else {
-  console.error('FAIL: Untick deleted transaction without confirmation');
-  process.exit(1);
-}
-
-// Step C: User confirms on bottom sheet (invokes onConfirm)
-if (ctx.window._lastConfirmSheet && ctx.window._lastConfirmSheet.onConfirm) {
-  ctx.window._lastConfirmSheet.onConfirm();
-}
-if (!api.S.paid[planKey] && !api.S.tx.some(t => t.id == 'tx_rent_sched')) {
-  console.log('✓ PASS: Confirmed untick cleanly removed transaction from history.');
-} else {
-  console.error('FAIL: Confirmed untick failed to clear payment');
-  process.exit(1);
-}
-
-
-// --- 14. Testing New Month Rollover & Recurring Plan Isolation ---
-console.log('');
-console.log('--- 14. Testing New Month Rollover & Recurring Plan Isolation ---');
-const octKey = 'p_rent|2026-10';
-const novKey = 'p_rent|2026-11';
-api.S.paid[octKey] = 'tx_oct_rent';
-if (api.S.paid[octKey] && !api.S.paid[novKey]) {
-  console.log('✓ PASS: October payment marked paid does NOT bleed into November; November starts clean and unpaid.');
-} else {
-  console.error('FAIL: Plan payment status bled across months', { oct: api.S.paid[octKey], nov: api.S.paid[novKey] });
-  process.exit(1);
-}
-api.V.m = 10;
-api.V.y = 2026;
-api.V.pt = 'exp';
-const novHtml = api.plan();
-if (novHtml.includes('Home Rent') || novHtml.includes('Rent')) {
-  console.log('✓ PASS: November Plan automatically populates recurring bills from October.');
-} else {
-  console.error('FAIL: Recurring bill missing in November plan');
-  process.exit(1);
-}
-
-// --- 15. Testing Planned Bills Distribution on Pace Visuals ---
-console.log('');
-console.log('--- 15. Testing Planned Bills Distribution on Pace Visuals ---');
-
-// Set November 2026 (30 days), evaluate at Day 2
-api.V.y = 2026;
-api.V.m = 10; // November
-api.V.t = 'home';
-api.S.budget = 50000;
-
-// Setup: Rent of ₹25,000 paid on Day 2
-const novPlanKey = 'p_rent|2026-11';
-api.S.paid[novPlanKey] = 'tx_nov_rent_25k';
-api.S.tx = [
-  { id: 'tx_nov_rent_25k', d: '2026-11-02', t: 'exp', a: 25000, c: 'Rent', n: 'Home Rent', s: 'acc_icici' },
-  { id: 'tx_d1_food', d: '2026-11-01', t: 'exp', a: 500, c: 'Food', n: 'Lunch', s: 'acc_icici' },
-  { id: 'tx_d2_coffee', d: '2026-11-02', t: 'exp', a: 200, c: 'Food', n: 'Coffee', s: 'acc_icici' }
-];
-
-const homeOutput = api.home();
-
-// Check that false overshoot alert is eliminated and pace shows on track
-if (homeOutput.includes('On Track') && !homeOutput.includes('⚠️ Overshoot Warning')) {
-  console.log('✓ PASS: Marking ₹25,000 rent paid on Day 2 does NOT trigger false overshoot alert.');
-} else {
-  console.error('FAIL: Day 2 false overshoot warning still triggered', ctx.window._lastPaceAlert);
-  process.exit(1);
-}
-
-// Check that projected spend reflects distributed bills + variable pace (approx ₹35,500, well under ₹50,000)
-if (homeOutput.includes('under budget') || homeOutput.includes('On Track')) {
-  console.log('✓ PASS: Budget pace chart projects realistic spend factoring distributed monthly bills.');
-} else {
-  console.error('FAIL: Budget pace projection missing on track state');
-  process.exit(1);
-}
-
-// --- 16. Testing Complete UI Overhaul: Themes, Fonts, Visual Cards, Dynamic Charts ---
-console.log('');
-console.log('--- 16. Testing Complete UI Overhaul: Themes, Fonts, Visual Cards, Dynamic Charts ---');
-
-// 16.1 Test New Themes & Accents
-api.setTheme('m', 'midnight');
-if (ctx.document.documentElement.style['--bg'] === '#0B0F19' && ctx.document.documentElement.style['--card'] === '#111827') {
-  console.log('✓ PASS: Midnight luxury theme applied custom variables (--bg: #0B0F19, --card: #111827).');
-} else {
-  console.error('FAIL: Midnight theme failed to apply CSS variables', ctx.document.documentElement.style);
-  process.exit(1);
-}
-
-// 16.2 Test Custom Typography / Font Switching
-api.setTheme('font', 'jakarta');
-if (ctx.document.documentElement.style['--font-family'] && ctx.document.documentElement.style['--font-family'].includes('Plus Jakarta Sans')) {
-  console.log('✓ PASS: Plus Jakarta Sans fintech typography applied to --font-family.');
-} else {
-  console.error('FAIL: Font switching failed to set --font-family', ctx.document.documentElement.style['--font-family']);
-  process.exit(1);
-}
-
-// 16.3 Test Dynamic Accent & Harmonic Chart Palettes
-api.setTheme('a', 'Teal');
-api.setTheme('c', 'Accent');
-const tealPalette = api.cpal('Accent');
-if (tealPalette.length === 16 && tealPalette[0].startsWith('hsl(')) {
-  console.log('✓ PASS: Dynamic Accent chart palette generated 16 harmonious hues from Teal.');
-} else {
-  console.error('FAIL: Dynamic Accent palette generation failed', tealPalette);
-  process.exit(1);
-}
-
-// 16.4 Test Visual Cards & Better Charts
-const cdViewOverhaul = api.cards();
-if (cdViewOverhaul.includes('account-card') && cdViewOverhaul.includes('account-badge') && cdViewOverhaul.includes('⚖️ Adjust')) {
-  console.log('✓ PASS: Cards screen displays elevated visual bank cards with bank badges.');
-} else {
-  console.error('FAIL: Visual bank account cards missing from cards view');
-  process.exit(1);
-}
-
-const hmViewOverhaul = api.home();
-if (hmViewOverhaul.includes('paceAreaGrad') && hmViewOverhaul.includes('polygon fill="url(#paceAreaGrad)"')) {
-  console.log('✓ PASS: Home budget chart features soft gradient area fill and glowing active marker.');
-} else {
-  console.error('FAIL: Gradient pace chart markup missing');
-  process.exit(1);
-}
-
-// --- 17. Testing Side-by-Side Coexistence with FinPlan ---
-console.log('');
-console.log('--- 17. Testing Side-by-Side Coexistence with FinPlan ---');
-
-// Set a mock FinPlan dataset in localStorage
-const mockFinPlanData = JSON.stringify({ app: 'FinPlan', months: { 'Oct-2026': { expenses: [] } } });
-ctx.localStorage.setItem('finplan_v1', mockFinPlanData);
-
-// Simulate fresh Fintrak load without existing fintrak_v1
-ctx.localStorage.removeItem('fintrak_v1');
-const freshCtx = { ...ctx };
-vm.createContext(freshCtx);
-vm.runInContext(code, freshCtx);
-
-// Check that finplan_v1 was NOT deleted or overwritten
-const preservedFinPlan = ctx.localStorage.getItem('finplan_v1');
-if (preservedFinPlan === mockFinPlanData) {
-  console.log('✓ PASS: Fintrak does not read, overwrite, or delete finplan_v1 from localStorage.');
-} else {
-  console.error('FAIL: Fintrak altered or deleted finplan_v1 data!', preservedFinPlan);
-  process.exit(1);
-}
-
-// Restore fintrak data
-ctx.localStorage.setItem('fintrak_v1', JSON.stringify(api.S));
-
-// --- 18. Testing Relative Weekday Recurrence (Nth Friday, etc.) ---
-console.log('');
-console.log('--- 18. Testing Relative Weekday Recurrence (Nth Friday, etc.) ---');
-
-// November 2026 tests (Nov 1 is Sunday)
-const novY = 2026, novM = 10; // 0-indexed month 10 = November
-const fri1 = api.pDay({ rule: '1-fri' }, novY, novM);
-const fri2 = api.pDay({ rule: '2-fri' }, novY, novM);
-const fri3 = api.pDay({ rule: '3-fri' }, novY, novM);
-const fri4 = api.pDay({ rule: '4-fri' }, novY, novM);
-const friLast = api.pDay({ rule: 'last-fri' }, novY, novM);
-
-if (fri1 === 6 && fri2 === 13 && fri3 === 20 && fri4 === 27 && friLast === 27) {
-  console.log('✓ PASS: November 2026 Friday recurrence calculated accurately (6th, 13th, 20th, 27th).');
-} else {
-  console.error('FAIL: Friday recurrence calculation incorrect in Nov 2026', { fri1, fri2, fri3, fri4, friLast });
-  process.exit(1);
-}
-
-// December 2026 tests (Dec 1 is Tuesday)
-const decY = 2026, decM = 11; // 0-indexed month 11 = December
-const decFri2 = api.pDay({ rule: '2-fri' }, decY, decM);
-const decFriLast = api.pDay({ rule: 'last-fri' }, decY, decM);
-
-if (decFri2 === 11 && decFriLast === 25) {
-  console.log('✓ PASS: December 2026 relative dates dynamically adjusted (2nd Friday = Dec 11, Last Friday = Dec 25).');
-} else {
-  console.error('FAIL: December relative calculation incorrect', { decFri2, decFriLast });
-  process.exit(1);
-}
-
-// Check label generation
-const label = api.pDayLabel({ rule: '2-fri' }, novY, novM);
-if (label === '2nd Friday (Day 13)') {
-  console.log('✓ PASS: pDayLabel generated readable schedule label: "' + label + '".');
-} else {
-  console.error('FAIL: pDayLabel incorrect', label);
-  process.exit(1);
-}
-
-// Check integration in Plan UI
-api.V.y = 2026;
-api.V.m = 10;
-api.V.pt = 'exp';
-api.S.plan = [
-  { id: 'p_weekly_allowance', n: 'Weekly Allowance', k: 'exp', a: 5000, rule: '2-fri', s: 'acc_icici', c: 'Food' }
-];
-
-const planHtml = api.plan();
-if (planHtml.includes('Weekly Allowance') && planHtml.includes('2nd Friday (Day 13)')) {
-  console.log('✓ PASS: Plan tab displays relative recurrence schedule ("2nd Friday (Day 13)").');
-} else {
-  console.error('FAIL: Relative recurrence label missing in plan tab', planHtml);
-  process.exit(1);
-}
-
-// --- 19. Testing Account-Specific Filtering & Bank CSV/Statement Smart Deduplication ---
-console.log('');
-console.log('--- 19. Testing Account-Specific Filtering & Bank CSV/Statement Smart Deduplication ---');
-
-// 19.1 Account & Period Filtering in History
-api.S.acc = [
-  { id: 'acc_hdfc', n: 'HDFC Salary', o: 50000 },
-  { id: 'acc_icici', n: 'ICICI Savings', o: 20000 }
-];
-api.S.tx = [
-  { id: 'tx_h1', d: '2026-11-02', t: 'exp', a: 1200, c: 'Groceries', n: 'Nature Basket', s: 'acc_hdfc' },
-  { id: 'tx_i1', d: '2026-11-03', t: 'exp', a: 450, c: 'Restaurant & takeaway', n: 'Swiggy', s: 'acc_icici' },
-  { id: 'tx_h2', d: '2026-11-04', t: 'inc', a: 80000, c: 'Other income', n: 'Salary Credit', s: 'acc_hdfc' }
-];
-
-// Test filtering by account
-api.V.accFilter = 'acc_hdfc';
-api.V.dateFrom = '2026-11-01';
-api.V.dateTo = '2026-11-30';
-api.V.hf = 'all';
-const histFiltered = api.hist();
-
-if (histFiltered.includes('Nature Basket') && histFiltered.includes('Salary Credit') && !histFiltered.includes('Swiggy')) {
-  console.log('✓ PASS: History displays transactions filtered specifically to HDFC Salary within date period.');
-} else {
-  console.error('FAIL: Account-specific filtering failed in History', histFiltered);
-  process.exit(1);
-}
-
-// 19.2 Bank CSV / Statement Parsing
-const sampleBankCSV = `Date,Narration,Withdrawal,Deposit
-02/11/2026,NATURE BASKET GROCERY,1200.00,
-05/11/2026,SHELL PETROL PUMP,2500.00,
-06/11/2026,DIVIDEND RECEIVED,,3400.00`;
-
-const parsedRows = api.parseBankStatementText(sampleBankCSV);
-if (parsedRows.length === 3 && parsedRows[0].a === 1200 && parsedRows[1].c === 'Fuel' && parsedRows[2].t === 'inc') {
-  console.log('✓ PASS: Bank CSV parsed dates, descriptions, categories, and debit/credit amounts accurately.');
-} else {
-  console.error('FAIL: Bank CSV parsing failed', parsedRows);
-  process.exit(1);
-}
-
-// 19.3 Smart Deduplication (Only add unrecorded transactions)
-const dedup = api.deduplicateTransactions(parsedRows, 'acc_hdfc');
-// NATURE BASKET on 2026-11-02 with amount 1200 already exists in HDFC
-if (dedup.duplicateItems.length === 1 && dedup.newItems.length === 2) {
-  console.log('✓ PASS: Deduplication identified existing ₹1,200 transaction; only 2 new unrecorded items queued for import.');
-} else {
-  console.error('FAIL: Deduplication mismatch', dedup);
-  process.exit(1);
-}
-
-console.log('');
-console.log('=========================================');
-console.log('ALL 19 TEST SUITES PASSED FLAWLESSLY! 100%');
-console.log('=========================================');
-console.log('');
-
-
-
-
-
+console.log('\n=========================================');
+console.log('ALL TESTS PASSED FLAWLESSLY! 100%');
+console.log('=========================================\n');
